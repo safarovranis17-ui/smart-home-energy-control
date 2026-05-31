@@ -5,135 +5,125 @@ import pandas as pd
 import time
 import threading
 
-# Инициализация приложения
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# Глобальные переменные для управления воспроизведением
-csv_data = []            # Все данные из CSV
-current_index = 0        # Текущая позиция воспроизведения
-is_playing = False       # Флаг воспроизведения
-playback_thread = None   # Поток для воспроизведения
+csv_data = []
+current_index = 0
+is_playing = False
+playback_thread = None
 
 def load_csv_data():
-    """Загружает данные из CSV-файла в глобальный список."""
+    """Загружает данные из CSV-файла."""
     global csv_data
     print("📂 Загрузка CSV-файла...")
     try:
         df = pd.read_csv('data/smart_home_dataset.csv')
-        # Преобразуем в список словарей для удобства
         csv_data = df.to_dict('records')
         print(f"✅ Загружено {len(csv_data)} записей.")
-        print(f"   Период данных: с {csv_data[0]['Datetime']} по {csv_data[-1]['Datetime']}")
+        if len(csv_data) > 0:
+            print(f"   Пример записи: {csv_data[0].keys()}")
         return True
-    except FileNotFoundError:
-        print("❌ Ошибка: Файл 'data/smart_home_dataset.csv' не найден.")
-        return False
     except Exception as e:
-        print(f"❌ Ошибка при загрузке CSV: {e}")
+        print(f"❌ Ошибка загрузки CSV: {e}")
         return False
 
 def playback_loop():
-    """Фоновый поток, который последовательно отправляет данные всем клиентам."""
+    """Фоновый поток для отправки данных."""
     global current_index, is_playing, csv_data
 
-    print("▶️ Поток автоматического воспроизведения ЗАПУЩЕН.")
+    print("▶️ Поток воспроизведения ЗАПУЩЕН.")
     while is_playing and current_index < len(csv_data):
         record = csv_data[current_index]
         
-        # Формируем пакет для отправки
+        # Отправляем данные в правильном формате
         data_to_emit = {
             'datetime': record.get('Datetime', ''),
+            'datetime_short': record.get('Datetime', '')[5:16],  # "MM-DD HH:MM"
             'energy': record.get('Energy Consumption (kWh)', 0),
             'progress': (current_index + 1) / len(csv_data) * 100,
             'total': len(csv_data),
-            'current': current_index + 1
+            'current': current_index + 1,
+            'television': record.get('Television', 0),
+            'dryer': record.get('Dryer', 0),
+            'oven': record.get('Oven', 0),
+            'refrigerator': record.get('Refrigerator', 0),
+            'microwave': record.get('Microwave', 0)
         }
-        # Отправляем событие всем подключенным клиентам
+        
+        print(f"📤 Отправка {current_index + 1}/{len(csv_data)}: {data_to_emit['datetime_short']} -> {data_to_emit['energy']} кВт·ч")
+        
         socketio.emit('new_data', data_to_emit)
         
         current_index += 1
         
-        # Рассчитываем задержку для следующей отправки
+        # Задержка между записями
         if current_index < len(csv_data):
-            # Разница во времени между текущей и следующей записью (в секундах)
             time_diff = csv_data[current_index]['Unix Timestamp'] - record['Unix Timestamp']
-            # Ограничиваем паузу между 0.2 и 3 секундами для плавности
-            delay = max(0.2, min(time_diff, 3.0))
+            delay = max(0.2, min(time_diff, 2.0))
             time.sleep(delay)
 
-    print("✅ Автоматическое воспроизведение ЗАВЕРШЕНО.")
+    print("✅ Воспроизведение ЗАВЕРШЕНО.")
     socketio.emit('playback_finished', {'message': 'All data sent'})
     is_playing = False
 
 def start_playback():
-    """Запускает поток воспроизведения."""
+    """Запускает воспроизведение."""
     global is_playing, playback_thread, current_index
     if is_playing:
-        print("Воспроизведение уже идет.")
         return
     if current_index >= len(csv_data):
-        current_index = 0  # Начать заново, если дошли до конца
+        current_index = 0
     is_playing = True
     playback_thread = threading.Thread(target=playback_loop)
-    playback_thread.daemon = True  # Поток завершится вместе с приложением
+    playback_thread.daemon = True
     playback_thread.start()
+    print("🎬 Воспроизведение запущено")
 
-# --- Flask Маршруты (API) ---
 @app.route('/')
 def index():
-    """Главная страница."""
     return render_template('index.html')
 
 @app.route('/api/status')
 def status():
-    """Возвращает текущий статус воспроизведения."""
     total = len(csv_data)
     progress = (current_index / total * 100) if total > 0 else 0
     return jsonify({
         'is_playing': is_playing,
         'progress': progress,
         'total': total,
-        'loaded': len(csv_data) > 0
+        'current': current_index
     })
 
 @app.route('/api/data')
 def get_initial_data():
-    """Отдает начальную порцию данных (например, первые 100 записей для построения графика)."""
+    """Возвращает первые 100 записей для начального графика."""
     if not csv_data:
         return jsonify([])
-    # Отправляем первые 100 записей, чтобы при загрузке страницы график не был пустым
     return jsonify(csv_data[:100])
 
-# --- WebSocket события ---
 @socketio.on('connect')
 def handle_connect():
-    """Обработчик подключения нового клиента."""
-    print("🔌 Клиент подключился. Запускаем воспроизведение...")
-    # Как только клиент подключился, автоматически начинаем отправку данных
+    print("🔌 Клиент подключился")
     if csv_data and not is_playing:
         start_playback()
-    elif not csv_data:
-        emit('error', {'message': 'Данные не загружены на сервере.'})
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    """Обработчик отключения клиента."""
-    print("🔌 Клиент отключился.")
+    print("🔌 Клиент отключился")
 
-# --- Точка входа ---
 if __name__ == '__main__':
     print("="*50)
     print("ЗАПУСК СЕРВЕРА УМНОГО ДОМА")
     print("="*50)
     
     if load_csv_data():
-        print("\n🌐 Веб-интерфейс будет доступен по адресу: http://localhost:5000")
-        print("⏳ Как только вы откроете страницу, данные начнут автоматически поступать на график.")
+        print(f"\n🌐 Откройте: http://localhost:5000")
+        print("⏳ Данные начнут поступать автоматически")
     else:
-        print("\n❌ Не удалось загрузить данные. Убедитесь, что файл 'smart_home_dataset.csv' есть в папке 'data'.")
+        print("\n❌ Ошибка загрузки данных")
         exit(1)
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

@@ -2,220 +2,169 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Умный дом - Автоматический мониторинг энергопотребления</title>
-    <!-- Подключаем Socket.IO и Plotly -->
+    <title>Умный дом - Автоматический мониторинг</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
     <style>
-        /* Основные стили (можно оставить свои или использовать эти) */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Arial, sans-serif;
             margin: 0;
             padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            color: #333;
         }
-        .container {
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-        .card {
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
             background: white;
             border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: bold;
+            padding: 20px;
             margin-bottom: 20px;
-            color: #2c3e50;
-            border-left: 5px solid #667eea;
-            padding-left: 15px;
+            text-align: center;
         }
-        .stats-grid {
+        .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         .stat-card {
             background: white;
             border-radius: 15px;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
-            box-shadow: 0 5px 10px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
         }
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        .stat-value {
-            font-size: 2.2rem;
-            font-weight: bold;
-            color: #667eea;
-            margin: 10px 0;
-        }
-        .stat-label {
-            color: #7f8c8d;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .progress-container {
-            margin: 20px 0;
-        }
+        .stat-value { font-size: 28px; font-weight: bold; color: #667eea; }
         .progress-bar {
             width: 100%;
-            height: 12px;
-            background-color: #ecf0f1;
-            border-radius: 10px;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
             overflow: hidden;
+            margin: 10px 0;
         }
         .progress-fill {
             height: 100%;
-            background-color: #4caf50;
-            width: 0%;
-            transition: width 0.3s ease;
+            background: #4caf50;
+            transition: width 0.3s;
         }
-        .progress-text {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: #555;
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         .live-badge {
             display: inline-block;
-            width: 12px;
-            height: 12px;
-            background-color: #e74c3c;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
+            background: #f44336;
+            animation: pulse 1s infinite;
             margin-left: 10px;
-            animation: pulse 1.5s infinite;
-            vertical-align: middle;
         }
         @keyframes pulse {
-            0% { opacity: 1; transform: scale(1);}
-            50% { opacity: 0.5; transform: scale(1.2);}
-            100% { opacity: 1; transform: scale(1);}
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
         }
-        .footer {
-            text-align: center;
-            color: white;
-            margin-top: 30px;
-            font-size: 0.8rem;
-        }
-        #last-record {
-            font-size: 0.9rem;
-            color: #2c3e50;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
+        .footer { text-align: center; color: white; padding: 20px; }
+        .last-record {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
             text-align: center;
         }
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        h3 { margin: 0 0 15px 0; color: #333; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="card">
-            <h1 style="margin:0; display: inline-block;">🏠 Система контроля энергопотребления</h1>
-            <span class="live-badge"></span>
-            <p style="margin: 10px 0 0 0; color: #666;">Мониторинг, прогнозирование и предиктивная амортизация</p>
-            <p style="font-size: 0.8rem; color: #4caf50; margin-top: 10px;" id="connection-status">🟢 Соединение устанавливается...</p>
-        </div>
-
-        <!-- Статистика -->
-        <div class="stats-grid" id="stats-container">
-            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Среднее (кВт·ч)</div></div>
-            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Максимум (кВт·ч)</div></div>
-            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Минимум (кВт·ч)</div></div>
-            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Всего записей</div></div>
+        <div class="header">
+            <h1>🏠 Система контроля энергопотребления</h1>
+            <p>Автоматическое воспроизведение данных из CSV</p>
+            <span class="live-badge"></span> <span id="status-text">Подключение...</span>
         </div>
         
-        <!-- Прогресс -->
-        <div class="card">
-            <div class="card-title">📈 Прогресс воспроизведения данных</div>
-            <div class="progress-container">
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progress-fill"></div>
-                </div>
-                <div class="progress-text" id="progress-text">Ожидание данных...</div>
+        <div class="stats" id="stats">
+            <div class="stat-card"><div class="stat-value">--</div><div>Среднее</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div>Максимум</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div>Минимум</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div>Всего</div></div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>📊 Динамика энергопотребления</h3>
+            <div id="chart" style="height: 400px;"></div>
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
             </div>
+            <div class="progress-text" id="progress-text">Ожидание данных...</div>
         </div>
-
-        <!-- График -->
-        <div class="card">
-            <div class="card-title">📊 Динамика энергопотребления (Real-time)</div>
-            <div id="energy-chart" style="height: 450px;"></div>
+        
+        <div class="last-record" id="last-record">
+            Ожидание данных с сервера...
         </div>
-
-        <!-- Последняя запись -->
-        <div class="card" id="last-record-card">
-            <div class="card-title">⏱️ Последнее полученное показание</div>
-            <div id="last-record">Ожидание данных с сервера...</div>
-        </div>
-
+        
         <div class="footer">
-            <p>© 2024 Система умного дома | Данные автоматически загружаются из CSV | WebSocket Real-time обновления</p>
+            <p>© 2024 Система умного дома | Данные автоматически поступают из CSV</p>
         </div>
     </div>
-
+    
     <script>
         let socket = io();
-        let chartData = []; // Храним последние полученные точки
+        let chartData = [];
         let chart = null;
-
-        // --- Получение данных через WebSocket ---
-        socket.on('connect', () => {
-            console.log('✅ WebSocket подключен.');
-            document.getElementById('connection-status').innerHTML = '🟢 Соединение установлено. Данные поступают...';
+        let allEnergies = [];  // Для статистики
+        
+        socket.on('connect', function() {
+            console.log('✅ WebSocket подключен');
+            document.getElementById('status-text').innerHTML = 'Соединено, данные поступают...';
         });
-
-        socket.on('new_data', (data) => {
-            console.log(`📊 Новые данные: ${data.datetime} -> ${data.energy} кВт·ч`);
-            // Добавляем новую точку в массив
+        
+        socket.on('new_data', function(data) {
+            console.log('📊 Новые данные:', data);
+            
+            // Добавляем точку на график
             chartData.push({
-                time: data.datetime.substring(5, 16), // Берем "MM-DD HH:MM"
+                time: data.datetime_short,
                 energy: data.energy
             });
-            // Оставляем только последние 200 точек для производительности
-            if (chartData.length > 200) chartData.shift();
-
+            
+            // Оставляем последние 200 точек
+            if (chartData.length > 200) {
+                chartData.shift();
+            }
+            
             // Обновляем график
             updateChart();
-
+            
+            // Обновляем прогресс
+            document.getElementById('progress-fill').style.width = data.progress + '%';
+            document.getElementById('progress-text').innerHTML = `Воспроизведено ${data.current} из ${data.total} (${data.progress.toFixed(1)}%)`;
+            
             // Обновляем последнюю запись
             document.getElementById('last-record').innerHTML = `
-                <strong>Время:</strong> ${data.datetime} &nbsp;|&nbsp;
-                <strong>Энергия:</strong> ${data.energy.toFixed(2)} кВт·ч &nbsp;|&nbsp;
-                <strong>Прогресс:</strong> ${data.current} / ${data.total}
+                <strong>Последняя запись:</strong> ${data.datetime} | 
+                <strong>Энергия:</strong> ${data.energy.toFixed(2)} кВт·ч |
+                <strong>Приборы:</strong> 📺=${data.television} 🔥=${data.dryer} 🍳=${data.oven} 🧊=${data.refrigerator} ⚡=${data.microwave}
             `;
-
-            // Обновляем прогресс-бар
-            const progressPercent = data.progress;
-            document.getElementById('progress-fill').style.width = `${progressPercent}%`;
-            document.getElementById('progress-text').innerHTML = `Воспроизведено ${data.current} из ${data.total} (${progressPercent.toFixed(1)}%)`;
         });
-
-        socket.on('playback_finished', () => {
-            console.log('🏁 Воспроизведение всех данных завершено.');
-            document.getElementById('connection-status').innerHTML = '✅ Воспроизведение завершено. Все данные отображены.';
-            document.getElementById('progress-fill').style.width = '100%';
-            document.getElementById('progress-text').innerHTML = '✅ Воспроизведение завершено.';
+        
+        socket.on('playback_finished', function() {
+            console.log('✅ Воспроизведение завершено');
+            document.getElementById('status-text').innerHTML = 'Воспроизведение завершено!';
         });
-
-        socket.on('error', (err) => {
-            console.error('Ошибка сокета:', err);
-            document.getElementById('connection-status').innerHTML = '🔴 Ошибка получения данных. Проверьте сервер.';
-        });
-
-        // --- Функция для построения графика ---
+        
         function updateChart() {
-            if (!chartData.length) return;
-
+            if (chartData.length === 0) return;
+            
             const trace = {
                 x: chartData.map(d => d.time),
                 y: chartData.map(d => d.energy),
@@ -224,57 +173,65 @@
                 line: { color: '#667eea', width: 2 },
                 marker: { size: 4, color: '#667eea' }
             };
-
+            
             const layout = {
                 title: '',
-                xaxis: { title: 'Дата и время', tickangle: -45, type: 'category' },
-                yaxis: { title: 'Энергопотребление (кВт·ч)' },
-                hovermode: 'closest',
-                margin: { t: 30 }
+                xaxis: { title: 'Время', tickangle: -45 },
+                yaxis: { title: 'Энергопотребление (кВт·ч)' }
             };
-
+            
             if (chart === null) {
-                // Первая отрисовка
-                Plotly.newPlot('energy-chart', [trace], layout, { responsive: true });
+                Plotly.newPlot('chart', [trace], layout, { responsive: true });
                 chart = true;
             } else {
-                // Обновление существующего графика
-                Plotly.react('energy-chart', [trace], layout);
+                Plotly.react('chart', [trace], layout);
             }
         }
-
-        // --- Загрузка начальных данных (для построения графика при старте) ---
+        
         async function loadInitialData() {
             try {
                 const response = await fetch('/api/data');
-                const initialData = await response.json();
-                if (initialData && initialData.length) {
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
                     // Заполняем график первыми 100 точками
-                    chartData = initialData.map(d => ({
+                    chartData = data.slice(0, 100).map(d => ({
                         time: d.Datetime.substring(5, 16),
                         energy: d['Energy Consumption (kWh)']
                     }));
                     updateChart();
-
-                    // Обновляем статистику
-                    const energies = initialData.map(d => d['Energy Consumption (kWh)']);
-                    const avg = (energies.reduce((a,b) => a+b, 0) / energies.length).toFixed(2);
-                    const max = Math.max(...energies).toFixed(2);
-                    const min = Math.min(...energies).toFixed(2);
-                    document.getElementById('stats-container').innerHTML = `
-                        <div class="stat-card"><div class="stat-value">${avg}</div><div class="stat-label">Среднее (кВт·ч)</div></div>
-                        <div class="stat-card"><div class="stat-value">${max}</div><div class="stat-label">Максимум (кВт·ч)</div></div>
-                        <div class="stat-card"><div class="stat-value">${min}</div><div class="stat-label">Минимум (кВт·ч)</div></div>
-                        <div class="stat-card"><div class="stat-value">${initialData.length}</div><div class="stat-label">Всего записей</div></div>
+                    
+                    // Статистика по всем данным
+                    const allEnergies = data.map(d => d['Energy Consumption (kWh)']);
+                    const avg = (allEnergies.reduce((a,b) => a+b, 0) / allEnergies.length).toFixed(2);
+                    const max = Math.max(...allEnergies).toFixed(2);
+                    const min = Math.min(...allEnergies).toFixed(2);
+                    
+                    document.getElementById('stats').innerHTML = `
+                        <div class="stat-card"><div class="stat-value">${avg}</div><div>Среднее (кВт·ч)</div></div>
+                        <div class="stat-card"><div class="stat-value">${max}</div><div>Максимум (кВт·ч)</div></div>
+                        <div class="stat-card"><div class="stat-value">${min}</div><div>Минимум (кВт·ч)</div></div>
+                        <div class="stat-card"><div class="stat-value">${data.length}</div><div>Всего записей</div></div>
                     `;
                 }
-            } catch (error) {
-                console.error('Ошибка загрузки начальных данных:', error);
+            } catch(e) {
+                console.error('Ошибка загрузки:', e);
             }
         }
-
-        // Запуск
+        
+        // Загружаем начальные данные
         loadInitialData();
+        
+        // Обновляем статус каждые 2 секунды
+        setInterval(async function() {
+            try {
+                const resp = await fetch('/api/status');
+                const status = await resp.json();
+                if (status.is_playing) {
+                    document.getElementById('status-text').innerHTML = '🟢 Данные поступают...';
+                }
+            } catch(e) {}
+        }, 2000);
     </script>
 </body>
 </html>
