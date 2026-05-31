@@ -3,452 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Умный дом - Система контроля энергопотребления</title>
+    <title>Умный дом - Автоматический мониторинг энергопотребления</title>
+    <!-- Подключаем Socket.IO и Plotly -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* Основные стили (можно оставить свои или использовать эти) */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            margin: 0;
             padding: 20px;
+            min-height: 100vh;
+            color: #333;
         }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header {
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+        .card {
             background: white;
             border-radius: 15px;
-            padding: 20px 30px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: bold;
             margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            color: #2c3e50;
+            border-left: 5px solid #667eea;
+            padding-left: 15px;
         }
-        .header h1 { color: #333; font-size: 28px; margin-bottom: 5px; }
-        .header p { color: #666; font-size: 14px; }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-top: 10px;
-        }
-        .status-online { background: #4caf50; color: white; }
-        .status-offline { background: #f44336; color: white; }
-        .status-playing { background: #ff9800; color: white; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .stat-card {
             background: white;
             border-radius: 15px;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
         }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-value { font-size: 32px; font-weight: bold; color: #667eea; margin: 10px 0; }
-        .stat-label { color: #666; font-size: 14px; }
-        
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
-        .card-title {
-            font-size: 20px;
+        .stat-value {
+            font-size: 2.2rem;
             font-weight: bold;
-            margin-bottom: 20px;
-            color: #333;
-            border-left: 4px solid #667eea;
-            padding-left: 15px;
+            color: #667eea;
+            margin: 10px 0;
         }
-        
-        .control-panel {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-            margin-bottom: 20px;
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s;
+        .progress-container {
+            margin: 20px 0;
         }
-        .btn-play { background: #4caf50; color: white; }
-        .btn-stop { background: #f44336; color: white; }
-        .btn-reset { background: #ff9800; color: white; }
-        .btn-speed { background: #2196f3; color: white; }
-        .btn-speed-active { background: #0b5e9e; transform: scale(1.05); }
-        .btn:hover { opacity: 0.8; transform: scale(1.02); }
-        
         .progress-bar {
             width: 100%;
-            height: 8px;
-            background: #e0e0e0;
-            border-radius: 4px;
+            height: 12px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
             overflow: hidden;
-            margin-top: 10px;
         }
         .progress-fill {
             height: 100%;
-            background: #4caf50;
-            transition: width 0.3s;
+            background-color: #4caf50;
+            width: 0%;
+            transition: width 0.3s ease;
         }
-        
-        .device-list { list-style: none; }
-        .device-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px;
-            border-bottom: 1px solid #eee;
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: #555;
         }
-        .score-green { background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 8px; }
-        .score-yellow { background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 8px; }
-        .score-orange { background: #ffe5d9; color: #e67e22; padding: 4px 8px; border-radius: 8px; }
-        .score-red { background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 8px; }
-        
-        .loading { text-align: center; padding: 40px; color: white; }
-        .footer { text-align: center; padding: 20px; color: white; font-size: 12px; }
-        .last-update { font-size: 11px; color: #999; margin-top: 10px; text-align: center; }
-        
-        .live-indicator {
+        .live-badge {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
+            background-color: #e74c3c;
             border-radius: 50%;
-            background: #4caf50;
-            animation: pulse 1s infinite;
-            margin-right: 8px;
+            margin-left: 10px;
+            animation: pulse 1.5s infinite;
+            vertical-align: middle;
         }
-        
-        @media (max-width: 768px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .control-panel { justify-content: center; }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1);}
+            50% { opacity: 0.5; transform: scale(1.2);}
+            100% { opacity: 1; transform: scale(1);}
+        }
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            font-size: 0.8rem;
+        }
+        #last-record {
+            font-size: 0.9rem;
+            color: #2c3e50;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🏠 Система контроля энергопотребления умного дома</h1>
-            <p>Мониторинг, прогнозирование и предиктивная амортизация оборудования</p>
-            <div>
-                <span id="system-status" class="status-badge status-offline">● Проверка подключения...</span>
-                <span id="play-status" style="margin-left: 10px;"></span>
-            </div>
-        </div>
-        
         <div class="card">
-            <div class="card-title">🎮 Управление воспроизведением данных</div>
-            <div class="control-panel">
-                <button id="btn-play" class="btn btn-play">▶ Воспроизвести (1x)</button>
-                <button id="btn-speed-2" class="btn btn-speed">2x</button>
-                <button id="btn-speed-5" class="btn btn-speed">5x</button>
-                <button id="btn-speed-10" class="btn btn-speed">10x</button>
-                <button id="btn-stop" class="btn btn-stop">⏹ Остановить</button>
-                <button id="btn-reset" class="btn btn-reset">🔄 Сброс</button>
-            </div>
-            <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
-            </div>
-            <div id="progress-text" style="text-align: center; margin-top: 5px; font-size: 12px;">Готов к воспроизведению</div>
+            <h1 style="margin:0; display: inline-block;">🏠 Система контроля энергопотребления</h1>
+            <span class="live-badge"></span>
+            <p style="margin: 10px 0 0 0; color: #666;">Мониторинг, прогнозирование и предиктивная амортизация</p>
+            <p style="font-size: 0.8rem; color: #4caf50; margin-top: 10px;" id="connection-status">🟢 Соединение устанавливается...</p>
+        </div>
+
+        <!-- Статистика -->
+        <div class="stats-grid" id="stats-container">
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Среднее (кВт·ч)</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Максимум (кВт·ч)</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Минимум (кВт·ч)</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Всего записей</div></div>
         </div>
         
-        <div id="loading" class="loading">
-            <h2>Загрузка данных...</h2>
-            <p>Пожалуйста, подождите</p>
-        </div>
-        
-        <div id="dashboard" style="display: none;">
-            <div class="stats-grid" id="stats-grid"></div>
-            
-            <div class="card">
-                <div class="card-title">📊 Энергопотребление (последние 100 записей)</div>
-                <div id="energy-chart" style="height: 400px;"></div>
-                <div id="live-badge" style="text-align: center; margin-top: 10px;">
-                    <span class="live-indicator"></span>
-                    <span style="font-size: 12px; color: #666;">Live обновления</span>
+        <!-- Прогресс -->
+        <div class="card">
+            <div class="card-title">📈 Прогресс воспроизведения данных</div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
                 </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">🔧 Предиктивная амортизация</div>
-                <div id="amortization-container"></div>
+                <div class="progress-text" id="progress-text">Ожидание данных...</div>
             </div>
         </div>
-        
+
+        <!-- График -->
+        <div class="card">
+            <div class="card-title">📊 Динамика энергопотребления (Real-time)</div>
+            <div id="energy-chart" style="height: 450px;"></div>
+        </div>
+
+        <!-- Последняя запись -->
+        <div class="card" id="last-record-card">
+            <div class="card-title">⏱️ Последнее полученное показание</div>
+            <div id="last-record">Ожидание данных с сервера...</div>
+        </div>
+
         <div class="footer">
-            <p>© 2024 Система умного дома | Данные с датчиков | Прогнозирование энергопотребления</p>
-            <div class="last-update" id="last-update"></div>
+            <p>© 2024 Система умного дома | Данные автоматически загружаются из CSV | WebSocket Real-time обновления</p>
         </div>
     </div>
-    
+
     <script>
         let socket = io();
-        let energyChart = null;
-        let updateInterval = null;
-        let currentSpeed = 1;
-        
-        socket.on('connect', function() {
-            console.log('WebSocket подключен');
-            document.getElementById('system-status').innerHTML = '● WebSocket connected';
+        let chartData = []; // Храним последние полученные точки
+        let chart = null;
+
+        // --- Получение данных через WebSocket ---
+        socket.on('connect', () => {
+            console.log('✅ WebSocket подключен.');
+            document.getElementById('connection-status').innerHTML = '🟢 Соединение установлено. Данные поступают...';
         });
-        
-        socket.on('sensor_data', function(data) {
-            console.log('Новые данные:', data);
-            document.getElementById('live-badge').innerHTML = '<span class="live-indicator"></span><span style="font-size: 12px; color: #4caf50;">Получены новые данные: ' + new Date().toLocaleTimeString() + '</span>';
-            loadDashboard();
-        });
-        
-        socket.on('playback_complete', function(data) {
-            console.log('Воспроизведение завершено:', data);
-            document.getElementById('play-status').innerHTML = '✅ Воспроизведение завершено';
-            document.getElementById('btn-play').disabled = false;
-        });
-        
-        async function updatePlayStatus() {
-            try {
-                const response = await fetch('/api/play/status');
-                const status = await response.json();
-                
-                const progressFill = document.getElementById('progress-fill');
-                const progressText = document.getElementById('progress-text');
-                
-                if (progressFill) {
-                    progressFill.style.width = status.progress + '%';
-                }
-                if (progressText) {
-                    progressText.innerHTML = `Прогресс: ${status.progress.toFixed(1)}% (${status.current_index}/${status.total_records} записей) | Скорость: ${status.speed}x`;
-                }
-                
-                if (status.is_playing) {
-                    document.getElementById('play-status').innerHTML = '▶ Воспроизведение... ' + status.progress.toFixed(0) + '%';
-                    document.getElementById('btn-play').disabled = true;
-                    document.getElementById('btn-stop').disabled = false;
-                } else {
-                    document.getElementById('play-status').innerHTML = '⏸ Остановлено';
-                    document.getElementById('btn-play').disabled = false;
-                    document.getElementById('btn-stop').disabled = false;
-                }
-            } catch(e) { console.error(e); }
-        }
-        
-        async function checkSystemStatus() {
-            try {
-                const response = await fetch('/api/status');
-                if (response.ok) {
-                    const data = await response.json();
-                    const statusBadge = document.getElementById('system-status');
-                    statusBadge.className = 'status-badge status-online';
-                    statusBadge.innerHTML = `● Система активна | БД: ${data.total_readings || 0} записей`;
-                    return true;
-                }
-            } catch (error) {
-                console.error('Status check failed:', error);
-                document.getElementById('system-status').innerHTML = '● Сервер не отвечает';
-            }
-            return false;
-        }
-        
-        async function loadDashboard() {
-            try {
-                const statsResponse = await fetch('/api/statistics?hours=24');
-                if (statsResponse.ok) {
-                    const stats = await statsResponse.json();
-                    updateStats(stats);
-                }
-                
-                const dataResponse = await fetch('/api/data?limit=200');
-                if (dataResponse.ok) {
-                    const data = await dataResponse.json();
-                    updateEnergyChart(data);
-                }
-                
-                const amortResponse = await fetch('/api/amortization');
-                if (amortResponse.ok) {
-                    const amortization = await amortResponse.json();
-                    updateAmortization(amortization);
-                }
-                
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block';
-                document.getElementById('last-update').innerHTML = 'Последнее обновление: ' + new Date().toLocaleTimeString();
-                
-            } catch (error) {
-                console.error('Error loading dashboard:', error);
-                document.getElementById('loading').innerHTML = '<h2>⚠️ Ошибка загрузки данных</h2><p>Убедитесь, что сервер запущен</p>';
-            }
-        }
-        
-        function updateStats(stats) {
-            const statsGrid = document.getElementById('stats-grid');
-            statsGrid.innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-label">📈 Среднее потребление</div>
-                    <div class="stat-value">${(stats.avg_energy || 0).toFixed(2)} кВт·ч</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">🔝 Максимальное потребление</div>
-                    <div class="stat-value">${(stats.max_energy || 0).toFixed(2)} кВт·ч</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">📉 Минимальное потребление</div>
-                    <div class="stat-value">${(stats.min_energy || 0).toFixed(2)} кВт·ч</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">⚠️ Аномалии (24ч)</div>
-                    <div class="stat-value">${stats.anomaly_count || 0}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">📊 Всего показаний</div>
-                    <div class="stat-value">${stats.total_readings || 0}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">⚡ Среднее напряжение</div>
-                    <div class="stat-value">${(stats.avg_voltage || 230).toFixed(0)} В</div>
-                </div>
-            `;
-        }
-        
-        function updateEnergyChart(data) {
-            if (!data || data.length === 0) return;
-            
-            const timestamps = data.map(d => {
-                const date = new Date(d.datetime);
-                return date.toLocaleString();
+
+        socket.on('new_data', (data) => {
+            console.log(`📊 Новые данные: ${data.datetime} -> ${data.energy} кВт·ч`);
+            // Добавляем новую точку в массив
+            chartData.push({
+                time: data.datetime.substring(5, 16), // Берем "MM-DD HH:MM"
+                energy: data.energy
             });
-            const values = data.map(d => d.energy_consumption);
-            
+            // Оставляем только последние 200 точек для производительности
+            if (chartData.length > 200) chartData.shift();
+
+            // Обновляем график
+            updateChart();
+
+            // Обновляем последнюю запись
+            document.getElementById('last-record').innerHTML = `
+                <strong>Время:</strong> ${data.datetime} &nbsp;|&nbsp;
+                <strong>Энергия:</strong> ${data.energy.toFixed(2)} кВт·ч &nbsp;|&nbsp;
+                <strong>Прогресс:</strong> ${data.current} / ${data.total}
+            `;
+
+            // Обновляем прогресс-бар
+            const progressPercent = data.progress;
+            document.getElementById('progress-fill').style.width = `${progressPercent}%`;
+            document.getElementById('progress-text').innerHTML = `Воспроизведено ${data.current} из ${data.total} (${progressPercent.toFixed(1)}%)`;
+        });
+
+        socket.on('playback_finished', () => {
+            console.log('🏁 Воспроизведение всех данных завершено.');
+            document.getElementById('connection-status').innerHTML = '✅ Воспроизведение завершено. Все данные отображены.';
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('progress-text').innerHTML = '✅ Воспроизведение завершено.';
+        });
+
+        socket.on('error', (err) => {
+            console.error('Ошибка сокета:', err);
+            document.getElementById('connection-status').innerHTML = '🔴 Ошибка получения данных. Проверьте сервер.';
+        });
+
+        // --- Функция для построения графика ---
+        function updateChart() {
+            if (!chartData.length) return;
+
             const trace = {
-                x: timestamps,
-                y: values,
+                x: chartData.map(d => d.time),
+                y: chartData.map(d => d.energy),
                 mode: 'lines+markers',
                 name: 'Энергопотребление',
                 line: { color: '#667eea', width: 2 },
                 marker: { size: 4, color: '#667eea' }
             };
-            
-            const anomalies = data.filter(d => d.is_anomaly === 1);
-            const anomalyTrace = {
-                x: anomalies.map(d => new Date(d.datetime).toLocaleString()),
-                y: anomalies.map(d => d.energy_consumption),
-                mode: 'markers',
-                name: 'Аномалии',
-                marker: { size: 10, color: '#ff9800', symbol: 'x' }
-            };
-            
+
             const layout = {
-                title: 'Динамика энергопотребления',
-                xaxis: { title: 'Время', tickangle: -45 },
+                title: '',
+                xaxis: { title: 'Дата и время', tickangle: -45, type: 'category' },
                 yaxis: { title: 'Энергопотребление (кВт·ч)' },
-                hovermode: 'closest'
+                hovermode: 'closest',
+                margin: { t: 30 }
             };
-            
-            Plotly.newPlot('energy-chart', [trace, anomalyTrace], layout, { responsive: true });
+
+            if (chart === null) {
+                // Первая отрисовка
+                Plotly.newPlot('energy-chart', [trace], layout, { responsive: true });
+                chart = true;
+            } else {
+                // Обновление существующего графика
+                Plotly.react('energy-chart', [trace], layout);
+            }
         }
-        
-        function updateAmortization(amortization) {
-            if (!amortization || amortization.error) {
-                document.getElementById('amortization-container').innerHTML = `<p style="color: #666;">${amortization?.message || 'Недостаточно данных для расчета'}</p>`;
-                return;
-            }
-            
-            let html = '';
-            
-            if (amortization.total) {
-                const total = amortization.total;
-                let scoreClass = '';
-                if (total.amortization_score < 40) scoreClass = 'score-green';
-                else if (total.amortization_score < 60) scoreClass = 'score-yellow';
-                else if (total.amortization_score < 80) scoreClass = 'score-orange';
-                else scoreClass = 'score-red';
-                
-                html += `
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; font-weight: bold;" class="${scoreClass}">${total.amortization_score}%</div>
-                        <div>Общая амортизация системы</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 10px;">
-                            Прогнозируемая нагрузка: ${total.predicted_avg_load} кВт·ч<br>
-                            Пиковая нагрузка: ${total.peak_load} кВт·ч
-                        </div>
-                        ${amortization.meta ? `<div style="font-size: 10px; color: #999; margin-top: 5px;">На основе ${amortization.meta.based_on_readings} показаний</div>` : ''}
-                    </div>
-                `;
-            }
-            
-            html += '<div style="margin-top: 20px;"><strong>Состояние приборов:</strong></div><div class="device-list">';
-            
-            const devices = ['Television', 'Dryer', 'Oven', 'Refrigerator', 'Microwave'];
-            for (const device of devices) {
-                if (amortization[device]) {
-                    const data = amortization[device];
-                    let scoreClass = '';
-                    if (data.amortization_score < 40) scoreClass = 'score-green';
-                    else if (data.amortization_score < 60) scoreClass = 'score-yellow';
-                    else if (data.amortization_score < 80) scoreClass = 'score-orange';
-                    else scoreClass = 'score-red';
-                    
-                    html += `<div class="device-item"><span>${device}</span><span class="${scoreClass}">${data.amortization_score}%</span></div>`;
+
+        // --- Загрузка начальных данных (для построения графика при старте) ---
+        async function loadInitialData() {
+            try {
+                const response = await fetch('/api/data');
+                const initialData = await response.json();
+                if (initialData && initialData.length) {
+                    // Заполняем график первыми 100 точками
+                    chartData = initialData.map(d => ({
+                        time: d.Datetime.substring(5, 16),
+                        energy: d['Energy Consumption (kWh)']
+                    }));
+                    updateChart();
+
+                    // Обновляем статистику
+                    const energies = initialData.map(d => d['Energy Consumption (kWh)']);
+                    const avg = (energies.reduce((a,b) => a+b, 0) / energies.length).toFixed(2);
+                    const max = Math.max(...energies).toFixed(2);
+                    const min = Math.min(...energies).toFixed(2);
+                    document.getElementById('stats-container').innerHTML = `
+                        <div class="stat-card"><div class="stat-value">${avg}</div><div class="stat-label">Среднее (кВт·ч)</div></div>
+                        <div class="stat-card"><div class="stat-value">${max}</div><div class="stat-label">Максимум (кВт·ч)</div></div>
+                        <div class="stat-card"><div class="stat-value">${min}</div><div class="stat-label">Минимум (кВт·ч)</div></div>
+                        <div class="stat-card"><div class="stat-value">${initialData.length}</div><div class="stat-label">Всего записей</div></div>
+                    `;
                 }
+            } catch (error) {
+                console.error('Ошибка загрузки начальных данных:', error);
             }
-            html += '</div>';
-            
-            document.getElementById('amortization-container').innerHTML = html;
         }
-        
-        async function startPlayback(speed) {
-            currentSpeed = speed;
-            const response = await fetch('/api/play/start', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({speed: speed})
-            });
-            const data = await response.json();
-            console.log('Playback started:', data);
-            updatePlayStatus();
-        }
-        
-        async function stopPlayback() {
-            await fetch('/api/play/stop', {method: 'POST'});
-            updatePlayStatus();
-        }
-        
-        async function resetPlayback() {
-            await fetch('/api/play/reset', {method: 'POST'});
-            updatePlayStatus();
-            loadDashboard();
-        }
-        
-        document.getElementById('btn-play')?.addEventListener('click', () => startPlayback(currentSpeed));
-        document.getElementById('btn-stop')?.addEventListener('click', stopPlayback);
-        document.getElementById('btn-reset')?.addEventListener('click', resetPlayback);
-        
-        document.getElementById('btn-speed-2')?.addEventListener('click', () => { currentSpeed = 2; startPlayback(2); });
-        document.getElementById('btn-speed-5')?.addEventListener('click', () => { currentSpeed = 5; startPlayback(5); });
-        document.getElementById('btn-speed-10')?.addEventListener('click', () => { currentSpeed = 10; startPlayback(10); });
-        
-        setInterval(updatePlayStatus, 1000);
-        setInterval(() => { if (document.getElementById('dashboard').style.display !== 'none') loadDashboard(); }, 5000);
-        
-        async function init() {
-            await checkSystemStatus();
-            await loadDashboard();
-            await updatePlayStatus();
-        }
-        
-        init();
+
+        // Запуск
+        loadInitialData();
     </script>
 </body>
 </html>
