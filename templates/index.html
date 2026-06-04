@@ -165,8 +165,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏠 Система контроля энергопотребления умного дома</h1>
-            <p>Мониторинг в реальном времени | Предиктивная амортизация | Прогнозирование нагрузок</p>
+            <h1> Система контроля энергопотребления умного дома</h1>
+            <p>Мониторинг  | Предиктивная амортизация | Прогнозирование нагрузок</p>
             <div class="status-indicator">
                 <span class="live-dot"></span>
                 <span id="status-text">Подключение к серверу...</span>
@@ -187,7 +187,7 @@
         <div class="main-grid">
             <div class="card">
                 <div class="card-title">
-                    <span>📊</span> Динамика энергопотребления
+                    <span></span> Динамика энергопотребления
                 </div>
                 <div id="energy-chart" style="height: 350px;"></div>
                 <div class="progress-container">
@@ -205,7 +205,7 @@
                     <div class="amortization-meter">
                         <div style="font-size: 14px; color: #666;">Общая амортизация системы</div>
                         <div id="overall-score" class="overall-score">--%</div>
-                        <div id="overall-status">⏳ Накопление данных...</div>
+                        <div id="overall-status"> Накопление данных...</div>
                     </div>
                     <div id="device-list" class="device-list">
                         <div style="text-align: center; color: #999;">Загрузка данных...</div>
@@ -217,10 +217,10 @@
         <!-- Состояние приборов в реальном времени -->
         <div class="card">
             <div class="card-title">
-                <span>📱</span> Текущее состояние приборов
+                <span></span> Текущее состояние приборов
             </div>
             <div id="device-status" class="device-status">
-                <span class="device-chip">⏳ Ожидание данных...</span>
+                <span class="device-chip"> Ожидание данных...</span>
             </div>
             <div id="last-record" style="margin-top: 15px; font-size: 13px; color: #666; text-align: center;"></div>
         </div>
@@ -267,7 +267,7 @@
                 overallDiv.style.color = status.color || '#667eea';
             }
             if (overallStatusDiv) {
-                overallStatusDiv.innerHTML = `${status.icon || '📊'} ${status.text || 'Анализ данных...'}`;
+                overallStatusDiv.innerHTML = `${status.icon || ''} ${status.text || 'Анализ данных...'}`;
                 overallStatusDiv.style.color = status.color || '#666';
             }
             
@@ -310,11 +310,11 @@
             let html = '';
             
             const deviceNames = {
-                'television': '📺 Телевизор',
-                'dryer': '👕 Сушилка',
-                'oven': '🍳 Духовка',
-                'refrigerator': '🧊 Холодильник',
-                'microwave': '⚡ Микроволновка'
+                'television': ' Телевизор',
+                'dryer': ' Сушилка',
+                'oven': ' Духовка',
+                'refrigerator': ' Холодильник',
+                'microwave': ' Микроволновка'
             };
             
             for (const [key, name] of Object.entries(deviceNames)) {
@@ -358,7 +358,7 @@
         
         // WebSocket обработчики
         socket.on('connect', () => {
-            console.log('✅ WebSocket подключен');
+            console.log(' WebSocket подключен');
             document.getElementById('status-text').innerHTML = '🟢 Система активна, данные поступают';
         });
         
@@ -394,9 +394,9 @@
             const lastRecordDiv = document.getElementById('last-record');
             if (lastRecordDiv) {
                 lastRecordDiv.innerHTML = `
-                    📍 Последнее обновление: ${data.datetime || '--'} | 
-                    ⚡ Энергия: ${(data.energy || 0).toFixed(2)} кВт·ч | 
-                    🔌 Напряжение: ${data.voltage || 0} В
+                     Последнее обновление: ${data.datetime || '--'} | 
+                     Энергия: ${(data.energy || 0).toFixed(2)} кВт·ч | 
+                     Напряжение: ${data.voltage || 0} В
                 `;
             }
             
