@@ -33,6 +33,7 @@
             padding: 8px 20px;
             border-radius: 20px;
             font-size: 14px;
+            margin-right: 10px;
         }
         .nav-link:hover { background: rgba(255,255,255,0.3); }
         
@@ -133,12 +134,22 @@
     </style>
 </head>
 <body>
-        <div class="tabs-container">
-        <div class="tabs">
-            <button class="tab-btn" onclick="location.href='/'">Мониторинг</button>
-            <button class="tab-btn active" onclick="location.href='/analytics'">Аналитика и советы</button>
-            <button class="tab-btn" onclick="location.href='/calculator'">Калькулятор экономии</button>
-        </div>
+    <div class="container">
+        <div class="header">
+            <h1>Аналитика и советы по экономии</h1>
+            <p>Персональные рекомендации для снижения энергопотребления</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <a href="/" class="nav-link">← На главную</a>
+                    <a href="/calculator" class="nav-link">🔮 Калькулятор</a>
+                </div>
+                <div class="tariff-input">
+                    <span> Тариф:</span>
+                    <input type="number" id="tariff" value="5.5" step="0.5">
+                    <span>руб/кВт·ч</span>
+                    <button onclick="updateTariff()">Обновить</button>
+                </div>
+            </div>
         </div>
         
         <div class="stats-grid" id="quick-stats">
@@ -162,7 +173,7 @@
         </div>
         
         <div class="card">
-            <div class="card-title"> Потенциал экономии по приборам</div>
+            <div class="card-title">🔧 Потенциал экономии по приборам</div>
             <table class="data-table" id="devices-table">
                 <thead>
                     <tr><th>Прибор</th><th>Среднее потребление</th><th>Доля от общего</th><th>Потенциал экономии</th><th>Рекомендация</th></tr>
@@ -189,8 +200,7 @@
         let optimalProfile = null;
         let currentTariff = 5.5;
         
-        // Константы
-        const RECORDS_PER_DAY = 96;  // 24 часа / 0.25 часа = 96 записей в день
+        const RECORDS_PER_DAY = 96;
         
         function getTariff() {
             return parseFloat(document.getElementById('tariff').value) || 5.5;
@@ -200,12 +210,6 @@
             currentTariff = getTariff();
             calculateStats();
             generateInsights();
-        }
-        
-        // Единая функция расчета месячного потребления
-        function calculateMonthlyKwh(avgPerRecord) {
-            const avgDaily = avgPerRecord * RECORDS_PER_DAY;
-            return avgDaily * 30;
         }
         
         async function loadData() {
@@ -223,11 +227,11 @@
                     renderComparisonChart();
                     generateInsights();
                 } else {
-                    document.getElementById('insights-container').innerHTML = '<div class="insight-card"> Нет данных. Убедитесь, что файл data/smart_home_dataset.csv загружен.</div>';
+                    document.getElementById('insights-container').innerHTML = '<div class="insight-card">⚠️ Нет данных. Убедитесь, что файл загружен.</div>';
                 }
             } catch(e) {
                 console.error('Ошибка загрузки:', e);
-                document.getElementById('insights-container').innerHTML = '<div class="insight-card"> Ошибка загрузки данных. Проверьте подключение к серверу.</div>';
+                document.getElementById('insights-container').innerHTML = '<div class="insight-card">⚠️ Ошибка загрузки данных.</div>';
             }
         }
         
@@ -237,7 +241,6 @@
             const energies = allData.map(d => d['Energy Consumption (kWh)'] || 0);
             const avgPerRecord = energies.reduce((a,b) => a+b, 0) / energies.length;
             
-            // Единый расчет для всех метрик
             const avgDaily = avgPerRecord * RECORDS_PER_DAY;
             const monthlyKwh = avgDaily * 30;
             const monthlyCost = monthlyKwh * currentTariff;
@@ -250,7 +253,6 @@
                 <div class="stat-card"><div class="stat-value">${potentialSavings.toFixed(0)} ₽</div><div class="stat-label">Экономия при оптимизации</div></div>
             `;
             
-            // Сохраняем для использования в других функциях
             window.currentMonthlyKwh = monthlyKwh;
             window.currentMonthlyCost = monthlyCost;
         }
@@ -306,14 +308,14 @@
                 <div class="insight-text">
                     <div class="insight-title">Ваш пик энергопотребления приходится на ${peakHour}:00</div>
                     <div>В это время нагрузка достигает ${maxValue.toFixed(2)} кВт·ч. 
-                    <strong>Рекомендация:</strong> Перенесите работу энергоемких приборов (стирка, сушка, посудомойка) на время после 22:00.</div>
+                    <strong>Рекомендация:</strong> Перенесите работу энергоемких приборов на время после 22:00.</div>
                 </div>
             `;
         }
         
         async function calculateDeviceStats() {
             if (!allData.length) {
-                document.getElementById('devices-tbody').innerHTML = ':<tr><td colspan="5">Нет данных для анализа</td></tr>';
+                document.getElementById('devices-tbody').innerHTML = '<tr><td colspan="5">Нет данных для анализа</td></tr>';
                 return;
             }
             
@@ -482,13 +484,11 @@
             const avgPerRecord = energies.reduce((a,b) => a+b, 0) / energies.length;
             const maxEnergy = Math.max(...energies);
             
-            // ИСПОЛЬЗУЕМ ТУ ЖЕ ФОРМУЛУ, ЧТО И В calculateStats()
             const avgDaily = avgPerRecord * RECORDS_PER_DAY;
             const monthlyKwh = avgDaily * 30;
             const monthlyCost = monthlyKwh * currentTariff;
             const potentialMonthly = monthlyCost * 0.15;
             
-            // Ночное потребление
             const nightHours = [0,1,2,3,4,5];
             let nightAvg = 0;
             let nightCount = 0;
@@ -508,7 +508,7 @@
             
             let insights = `
                 <div class="insight-card">
-                    <div class="insight-icon"></div>
+                    <div class="insight-icon">⚡</div>
                     <div class="insight-text">
                         <div class="insight-title">Снижение пиковых нагрузок</div>
                         Ваше максимальное потребление достигает ${maxEnergy.toFixed(2)} кВт·ч. 
@@ -544,7 +544,6 @@
             document.getElementById('insights-container').innerHTML = insights;
         }
         
-        // Запуск
         loadData();
     </script>
 </body>

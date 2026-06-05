@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор сценариев "Что, если?" - Умный дом</title>
+    <title>Калькулятор сценариев - Умный дом</title>
     <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -71,8 +71,10 @@
             border-radius: 3px;
             background: #e0e0e0;
             outline: none;
+            -webkit-appearance: none;
         }
         input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
             width: 18px;
             height: 18px;
             border-radius: 50%;
@@ -157,6 +159,14 @@
             border-radius: 10px;
             text-align: center;
         }
+        .tariff-input button {
+            padding: 8px 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
         
         .footer { text-align: center; color: rgba(255,255,255,0.6); padding: 20px; font-size: 12px; }
         
@@ -166,13 +176,15 @@
     </style>
 </head>
 <body>
-    <div class="tabs-container">
-    <div class="tabs">
-        <button class="tab-btn" onclick="location.href='/'">Мониторинг</button>
-        <button class="tab-btn" onclick="location.href='/analytics'">Аналитика и советы</button>
-        <button class="tab-btn active" onclick="location.href='/calculator'">Калькулятор экономии</button>
-    </div>
-    </div>
+    <div class="container">
+        <div class="header">
+            <h1>Калькулятор сценариев "Что, если?"</h1>
+            <p>Смоделируйте изменения и узнайте потенциальную экономию</p>
+            <div>
+                <a href="/" class="nav-link">← На главную</a>
+                <a href="/analytics" class="nav-link"> Аналитика</a>
+            </div>
+        </div>
         
         <div class="main-grid">
             <div class="card">
@@ -181,7 +193,7 @@
                 <div class="device-item">
                     <div class="device-label">
                         <span> Телевизор</span>
-                        <span><input type="number" id="tv-hours" class="hours-input" value="4" min="0" max="12"> часов в день</span>
+                        <span><input type="number" id="tv-hours" class="hours-input" value="4" min="0" max="12" step="0.5"> часов в день</span>
                     </div>
                     <input type="range" id="tv-slider" min="0" max="12" value="4" step="0.5">
                 </div>
@@ -211,17 +223,17 @@
                 </div>
                 
                 <div class="scenario-buttons">
-                    <button class="scenario-btn" onclick="setScenario('economy')"> Экономичный режим</button>
-                    <button class="scenario-btn" onclick="setScenario('normal')"> Обычный режим</button>
-                    <button class="scenario-btn" onclick="setScenario('active')"> Активный режим</button>
-                    <button class="scenario-btn" onclick="resetToCurrent()"> Вернуть текущие</button>
+                    <button class="scenario-btn" onclick="setScenario('economy')"> Экономичный</button>
+                    <button class="scenario-btn" onclick="setScenario('normal')"> Обычный</button>
+                    <button class="scenario-btn" onclick="setScenario('active')"> Активный</button>
+                    <button class="scenario-btn" onclick="resetToCurrent()"> Сброс</button>
                 </div>
                 
                 <div class="tariff-input">
                     <span> Стоимость электроэнергии:</span>
                     <input type="number" id="tariff" value="5.5" step="0.5">
                     <span>руб/кВт·ч</span>
-                    <button onclick="calculateSavings()" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 10px; cursor: pointer;">Пересчитать</button>
+                    <button onclick="calculateSavings()">Пересчитать</button>
                 </div>
             </div>
             
@@ -256,12 +268,11 @@
         </div>
         
         <div class="footer">
-            <p>Калькулятор основан на ваших реальных данных </p>
+            <p>Калькулятор основан на ваших реальных данных | Настройте часы работы приборов</p>
         </div>
     </div>
     
     <script>
-        // Мощность приборов (кВт)
         const DEVICE_POWER = {
             television: 0.15,
             dryer: 2.5,
@@ -291,7 +302,7 @@
                 };
                 calculateSavings();
             } catch(e) {
-                console.error('Ошибка загрузки данных:', e);
+                console.error('Ошибка:', e);
                 actualConsumption = { monthly: 500, daily: 16.7, yearly: 6000 };
                 calculateSavings();
             }
@@ -316,11 +327,11 @@
             
             if (!actualConsumption) return;
             
-            const yearlyKwhSaved = actualConsumption.yearly - current.yearly;
-            const yearlySavings = Math.max(0, yearlyKwhSaved * tariff);
+            const yearlyKwhSaved = Math.max(0, actualConsumption.yearly - current.yearly);
+            const yearlySavings = yearlyKwhSaved * tariff;
             const monthlySavings = yearlySavings / 12;
             const dailySavings = monthlySavings / 30;
-            const percentSaved = (yearlyKwhSaved / actualConsumption.yearly * 100);
+            const percentSaved = (yearlyKwhSaved / actualConsumption.yearly * 100) || 0;
             
             document.getElementById('yearly-savings').innerHTML = `${Math.round(yearlySavings).toLocaleString()} ₽`;
             document.getElementById('daily-savings').innerHTML = `${Math.round(dailySavings)} ₽`;
@@ -342,8 +353,7 @@
                 y: [currentCost, Math.min(currentCost, targetCost)],
                 type: 'bar',
                 marker: {
-                    color: ['#f44336', '#4caf50'],
-                    showscale: false
+                    color: ['#f44336', '#4caf50']
                 },
                 text: [`${Math.round(currentCost)} ₽`, `${Math.min(currentCost, targetCost)} ₽`],
                 textposition: 'auto'

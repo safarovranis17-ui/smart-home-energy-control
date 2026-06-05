@@ -3,73 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Умный дом - контроль энергопотребления и предиктивная амортизация</title>
+    <title>Умный дом - контроль энергопотребления</title>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
             min-height: 100vh;
             padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
         
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            padding: 25px 30px;
-            margin-bottom: 25px;
-            color: white;
-        }
-        .header h1 { font-size: 28px; margin-bottom: 8px; }
-        .header p { opacity: 0.9; font-size: 14px; }
-        
-        /* Tabs - исправленные вкладки */
-        .tabs-container {
-            margin-bottom: 25px;
-        }
-        .tabs {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
+        /* Modern Navigation */
+        .navbar {
             background: rgba(255,255,255,0.1);
-            border-radius: 15px;
-            padding: 5px;
+            backdrop-filter: blur(10px);
+            border-radius: 60px;
+            padding: 8px 24px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
-        .tab-btn {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            background: transparent;
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .logo-text {
+            font-weight: 700;
+            font-size: 18px;
             color: white;
         }
-        .tab-btn:hover {
-            background: rgba(255,255,255,0.2);
+        .logo-text span {
+            font-weight: 400;
+            font-size: 12px;
+            opacity: 0.7;
+            display: block;
+        }
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .nav-link {
+            padding: 10px 24px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            color: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.05);
+        }
+        .nav-link:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
             transform: translateY(-2px);
         }
-        .tab-btn.active {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
-        
-        /* Status indicator */
-        .status-indicator {
-            display: inline-flex;
+        .status-badge {
+            display: flex;
             align-items: center;
             gap: 8px;
-            background: rgba(255,255,255,0.2);
-            padding: 8px 18px;
-            border-radius: 30px;
-            margin-top: 15px;
-            font-size: 13px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 16px;
+            border-radius: 40px;
         }
         .live-dot {
             width: 10px;
@@ -78,148 +98,202 @@
             border-radius: 50%;
             animation: pulse 1.5s infinite;
         }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
+        .status-text { font-size: 13px; color: rgba(255,255,255,0.8); }
+        .progress-badge {
+            background: rgba(255,255,255,0.15);
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        /* Header Card */
+        .header-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 28px;
+            padding: 30px 35px;
+            margin-bottom: 30px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .header-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .header-card h1 { font-size: 28px; margin-bottom: 8px; font-weight: 600; }
+        .header-card p { opacity: 0.85; font-size: 14px; }
         
         /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 20px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
         .stat-card {
-            background: white;
-            border-radius: 20px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.2);
         }
-        .stat-card:hover { transform: translateY(-3px); }
-        .stat-value { font-size: 32px; font-weight: bold; color: #667eea; }
-        .stat-label { color: #666; font-size: 13px; margin-top: 5px; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+        .stat-value { font-size: 32px; font-weight: 700; color: #667eea; }
+        .stat-label { color: #666; font-size: 13px; margin-top: 8px; font-weight: 500; }
         
         /* Main Grid */
         .main-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 25px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
         .card {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
         }
+        .card:hover { box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
         .card-title {
             font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
             border-bottom: 2px solid #667eea;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
         }
         
         /* Amortization */
         .amortization-meter {
             text-align: center;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 15px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #f0f2f5 100%);
+            border-radius: 20px;
             margin-bottom: 20px;
         }
-        .overall-score {
-            font-size: 48px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .device-list {
-            list-style: none;
-        }
+        .overall-score { font-size: 52px; font-weight: 700; margin: 10px 0; }
+        .device-list { list-style: none; }
         .device-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
+            padding: 14px;
             border-bottom: 1px solid #eee;
         }
-        .device-name { font-weight: bold; }
+        .device-item:last-child { border-bottom: none; }
+        .device-name { font-weight: 600; }
         .device-score {
-            padding: 4px 12px;
-            border-radius: 20px;
+            padding: 4px 14px;
+            border-radius: 30px;
             font-size: 13px;
-            font-weight: bold;
+            font-weight: 600;
         }
         .score-excellent { background: #d4edda; color: #155724; }
         .score-good { background: #d1ecf1; color: #0c5460; }
         .score-warning { background: #fff3cd; color: #856404; }
         .score-critical { background: #f8d7da; color: #721c24; }
         
-        /* Progress */
-        .progress-container { margin-top: 15px; }
+        /* Device Status */
+        .device-status {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .device-chip {
+            padding: 8px 18px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 500;
+            background: #f0f0f0;
+            transition: all 0.3s ease;
+        }
+        .device-chip.active {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+        
         .progress-bar {
             width: 100%;
             height: 6px;
             background: #e0e0e0;
             border-radius: 3px;
             overflow: hidden;
+            margin-top: 15px;
         }
         .progress-fill {
             height: 100%;
-            background: #4caf50;
+            background: linear-gradient(90deg, #667eea, #764ba2);
             transition: width 0.3s;
+            width: 0%;
+            border-radius: 3px;
         }
         
-        /* Device Status */
-        .device-status {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-        .device-chip {
-            padding: 5px 12px;
-            border-radius: 20px;
+        .last-record {
+            margin-top: 15px;
             font-size: 12px;
-            background: #f0f0f0;
+            color: #666;
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 16px;
         }
-        .device-chip.active { background: #4caf50; color: white; }
         
-        .footer { text-align: center; color: rgba(255,255,255,0.6); padding: 20px; font-size: 12px; }
-        .last-record { font-size: 13px; color: #666; text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; }
+        .footer { text-align: center; padding: 25px; font-size: 12px; color: rgba(255,255,255,0.5); }
         
         @media (max-width: 768px) {
             .main-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
-            .tab-btn { padding: 8px 15px; font-size: 14px; }
+            .navbar { flex-direction: column; padding: 15px; }
+            .nav-links { justify-content: center; }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>Система контроля энергопотребления умного дома</h1>
-            <p>Мониторинг в реальном времени | Предиктивная амортизация | Прогнозирование нагрузок</p>
-            <div class="status-indicator">
+        <!-- Modern Navigation Bar -->
+        <nav class="navbar">
+            <div class="logo">
+                <div class="logo-icon"></div>
+                <div class="logo-text">
+                    SmartHome<span>Energy Control</span>
+                </div>
+            </div>
+            <div class="nav-links">
+                <a href="/" class="nav-link active"> Главная</a>
+                <a href="/analytics" class="nav-link"> Аналитика</a>
+                <a href="/calculator" class="nav-link"> Калькулятор</a>
+            </div>
+            <div class="status-badge">
                 <span class="live-dot"></span>
-                <span id="status-text">Подключение к серверу...</span>
-                <span id="progress-info" style="margin-left: 10px;"></span>
+                <span class="status-text" id="status-text">Подключение...</span>
+                <span class="progress-badge" id="progress-info">--</span>
             </div>
+        </nav>
+        
+        <!-- Header -->
+        <div class="header-card">
+            <h1>Система контроля энергопотребления</h1>
+            <p>Мониторинг в реальном времени | Предиктивная амортизация | Интеллектуальный анализ</p>
         </div>
         
-        <!-- Вкладки -->
-        <div class="tabs-container">
-            <div class="tabs">
-                <button class="tab-btn active" onclick="location.href='/'">Мониторинг</button>
-                <button class="tab-btn" onclick="location.href='/analytics'">Аналитика и советы</button>
-                <button class="tab-btn" onclick="location.href='/calculator'">Калькулятор экономии</button>
-            </div>
-        </div>
-        
-        <!-- Статистика -->
+        <!-- Stats -->
         <div class="stats-grid" id="stats-container">
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Среднее потребление</div></div>
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Максимум</div></div>
@@ -228,17 +302,15 @@
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Всего показаний</div></div>
         </div>
         
-        <!-- Основной блок: график + амортизация -->
+        <!-- Main Content -->
         <div class="main-grid">
             <div class="card">
                 <div class="card-title">
-                    <span>📊</span> Динамика энергопотребления
+                    <span></span> Динамика энергопотребления
                 </div>
                 <div id="energy-chart" style="height: 350px;"></div>
-                <div class="progress-container">
-                    <div class="progress-bar">
-                        <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
-                    </div>
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
                 </div>
             </div>
             
@@ -248,26 +320,26 @@
                 </div>
                 <div id="amortization-container">
                     <div class="amortization-meter">
-                        <div style="font-size: 14px; color: #666;">Общая амортизация системы</div>
+                        <div style="font-size: 13px; color: #888;">Общая амортизация системы</div>
                         <div id="overall-score" class="overall-score">--%</div>
-                        <div id="overall-status">Накопление данных...</div>
+                        <div id="overall-status" style="font-size: 13px;"></div>
                     </div>
                     <div id="device-list" class="device-list">
-                        <div style="text-align: center; color: #999;">Загрузка данных...</div>
+                        <div style="text-align: center; color: #999; padding: 20px;">Загрузка данных...</div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Состояние приборов в реальном времени -->
+        <!-- Device Status -->
         <div class="card">
             <div class="card-title">
                 <span>📱</span> Текущее состояние приборов
             </div>
             <div id="device-status" class="device-status">
-                <span class="device-chip">Ожидание данных...</span>
+                <span class="device-chip"> Ожидание данных...</span>
             </div>
-            <div id="last-record" class="last-record"></div>
+            <div id="last-record" class="last-record">Ожидание данных с датчиков...</div>
         </div>
         
         <div class="footer">
@@ -287,58 +359,6 @@
             return 'score-critical';
         }
         
-        function updateAmortization(amortization) {
-            if (!amortization) return;
-            
-            const overall = amortization.overall || 0;
-            const status = amortization.status || { text: 'Накопление данных', color: '#999' };
-            
-            document.getElementById('overall-score').innerHTML = overall + '%';
-            document.getElementById('overall-score').style.color = status.color || '#667eea';
-            document.getElementById('overall-status').innerHTML = status.text || 'Анализ данных...';
-            
-            const devices = amortization.devices;
-            if (devices && Object.keys(devices).length > 0) {
-                const deviceList = document.getElementById('device-list');
-                let html = '';
-                const deviceOrder = ['Refrigerator', 'Oven', 'Dryer', 'Television', 'Microwave'];
-                for (const device of deviceOrder) {
-                    const d = devices[device];
-                    if (d) {
-                        const scoreClass = getScoreClass(d.score);
-                        html += `
-                            <div class="device-item">
-                                <span class="device-name">${device}</span>
-                                <div>
-                                    <span class="device-score ${scoreClass}">${d.score}%</span>
-                                    <span style="font-size: 11px; margin-left: 8px; color: #888;">исп. ${d.usage}%</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                }
-                if (html) deviceList.innerHTML = html;
-            }
-        }
-        
-        function updateDeviceStatus(devices) {
-            if (!devices) return;
-            const container = document.getElementById('device-status');
-            let html = '';
-            const deviceNames = {
-                'television': 'Телевизор',
-                'dryer': 'Сушилка',
-                'oven': 'Духовка',
-                'refrigerator': 'Холодильник',
-                'microwave': 'Микроволновка'
-            };
-            for (const [key, name] of Object.entries(deviceNames)) {
-                const isActive = devices[key] === 1;
-                html += `<span class="device-chip ${isActive ? 'active' : ''}">${name} ${isActive ? 'Вкл' : 'Выкл'}</span>`;
-            }
-            container.innerHTML = html;
-        }
-        
         function updateChart() {
             if (chartData.length === 0) return;
             
@@ -348,7 +368,7 @@
                 mode: 'lines+markers',
                 name: 'Энергопотребление',
                 line: { color: '#667eea', width: 2 },
-                marker: { size: 4, color: '#667eea', symbol: 'circle' },
+                marker: { size: 4, color: '#667eea' },
                 fill: 'tozeroy',
                 fillcolor: 'rgba(102, 126, 234, 0.1)'
             };
@@ -358,7 +378,9 @@
                 xaxis: { title: 'Время', tickangle: -45, showgrid: true },
                 yaxis: { title: 'Энергопотребление (кВт·ч)', showgrid: true, range: [0, 8] },
                 hovermode: 'closest',
-                margin: { t: 20, l: 50, r: 30 }
+                margin: { t: 20, l: 50, r: 30 },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)'
             };
             
             if (chart === null) {
@@ -369,9 +391,54 @@
             }
         }
         
+        function updateAmortization(amortization) {
+            if (!amortization || !amortization.devices) return;
+            
+            const overall = amortization.overall || 0;
+            const status = amortization.status || { text: 'Анализ данных', color: '#999' };
+            
+            document.getElementById('overall-score').innerHTML = `${overall}%`;
+            document.getElementById('overall-score').style.color = status.color;
+            document.getElementById('overall-status').innerHTML = status.text;
+            
+            const devices = ['Refrigerator', 'Oven', 'Dryer', 'Television', 'Microwave'];
+            let html = '';
+            for (const device of devices) {
+                if (amortization.devices[device]) {
+                    const d = amortization.devices[device];
+                    const scoreClass = getScoreClass(d.score);
+                    html += `
+                        <div class="device-item">
+                            <span class="device-name">${device}</span>
+                            <span class="device-score ${scoreClass}">${d.score}%</span>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('device-list').innerHTML = html || '<div style="text-align: center; padding: 20px;">Данные загружаются...</div>';
+        }
+        
+        function updateDeviceStatus(devices) {
+            if (!devices) return;
+            const container = document.getElementById('device-status');
+            const deviceNames = {
+                'television': ' Телевизор',
+                'dryer': ' Сушилка',
+                'oven': ' Духовка',
+                'refrigerator': ' Холодильник',
+                'microwave': ' Микроволновка'
+            };
+            let html = '';
+            for (const [key, name] of Object.entries(deviceNames)) {
+                const isActive = devices[key] === 1;
+                html += `<span class="device-chip ${isActive ? 'active' : ''}">${name} ${isActive ? '● Вкл' : '○ Выкл'}</span>`;
+            }
+            container.innerHTML = html;
+        }
+        
         socket.on('connect', () => {
             console.log('WebSocket подключен');
-            document.getElementById('status-text').innerHTML = 'Система активна, данные поступают';
+            document.getElementById('status-text').innerHTML = 'Активен';
         });
         
         socket.on('new_data', (data) => {
@@ -380,16 +447,20 @@
             updateChart();
             
             document.getElementById('progress-fill').style.width = (data.progress || 0) + '%';
-            document.getElementById('progress-info').innerHTML = `${data.current || 0}/${data.total || 0} | ${data.progress || 0}%`;
+            document.getElementById('progress-info').innerHTML = `${data.current || 0}/${data.total || 0}`;
+            document.getElementById('status-text').innerHTML = 'Данные поступают';
             
             if (data.amortization) updateAmortization(data.amortization);
             if (data.devices) updateDeviceStatus(data.devices);
             
-            document.getElementById('last-record').innerHTML = `Последнее обновление: ${data.datetime || '--'} | Энергия: ${(data.energy || 0).toFixed(2)} кВт·ч | Напряжение: ${data.voltage || 0} В`;
+            const lastRecordDiv = document.getElementById('last-record');
+            if (lastRecordDiv) {
+                lastRecordDiv.innerHTML = ` Последнее обновление: ${data.datetime || '--'} | ⚡ Энергия: ${(data.energy || 0).toFixed(2)} кВт·ч | 🔌 Напряжение: ${data.voltage || 0} В`;
+            }
         });
         
         socket.on('stream_finished', () => {
-            document.getElementById('status-text').innerHTML = 'Все данные загружены';
+            document.getElementById('status-text').innerHTML = 'Завершено';
         });
         
         async function loadInitialData() {
@@ -401,7 +472,7 @@
                         <div class="stat-card"><div class="stat-value">${stats.avg_energy || 0} кВт·ч</div><div class="stat-label">Среднее потребление</div></div>
                         <div class="stat-card"><div class="stat-value">${stats.max_energy || 0} кВт·ч</div><div class="stat-label">Максимум</div></div>
                         <div class="stat-card"><div class="stat-value">${stats.min_energy || 0} кВт·ч</div><div class="stat-label">Минимум</div></div>
-                        <div class="stat-card"><div class="stat-value">${stats.avg_voltage || 230} В</div><div class="stat-label">Текущее напряжение</div></div>
+                        <div class="stat-card"><div class="stat-value">${stats.avg_voltage || 230} В</div><div class="stat-label">Среднее напряжение</div></div>
                         <div class="stat-card"><div class="stat-value">${stats.total_records || 0}</div><div class="stat-label">Всего показаний</div></div>
                     `;
                 }
