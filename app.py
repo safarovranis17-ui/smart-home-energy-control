@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 import time
 import threading
-from collections import deque
 from datetime import datetime
 
 app = Flask(__name__)
@@ -18,190 +17,42 @@ current_index = 0
 is_streaming = False
 stream_thread = None
 
-# Данные для накопления статистики (скользящее окно)
-historical_window = deque(maxlen=2000)  # последние 2000 записей (~20 дней)
-last_amortization_update = 0
-amortization_cache = None
-
-# Веса важности приборов
-DEVICE_WEIGHTS = {
-    'Refrigerator': 0.35,   # Холодильник - самый важный
-    'Oven': 0.25,           # Духовка
-    'Dryer': 0.20,          # Сушилка
-    'Television': 0.15,     # Телевизор
-    'Microwave': 0.05       # Микроволновка
-}
-
 def load_csv_data():
+    """Загружает данные из CSV-файла."""
     global csv_data
-    print("📂 Загрузка данных...")
+    print("📂 Загрузка CSV-файла...")
     try:
         df = pd.read_csv('data/smart_home_dataset.csv')
         csv_data = df.to_dict('records')
-        print(f"✅ Загружено {len(csv_data)} записей")
+        print(f"✅ Загружено {len(csv_data)} записей.")
+        if len(csv_data) > 0:
+            print(f"   Период: {csv_data[0].get('Datetime', 'N/A')} - {csv_data[-1].get('Datetime', 'N/A')}")
         return True
     except Exception as e:
-        print(f"❌ Ошибка: {e}")
+        print(f"❌ Ошибка загрузки CSV: {e}")
         return False
 
-def calculate_stable_amortization():
-    """
-    Рассчитывает стабильную амортизацию на основе накопленной статистики.
-    Вызывается периодически, а не для каждой записи.
-    """
-    if len(historical_window) < 100:
-        return None
-    
-    df = pd.DataFrame(historical_window)
-    
-    # Берем последние 500 записей для стабильности
-    recent = df.tail(500)
-    
-    # 1. Среднее потребление за период
-    avg_energy = recent['energy'].mean()
-    max_energy = recent['energy'].max()
-    energy_factor = avg_energy / 8.0  # 8 кВт·ч - пиковая нагрузка
-    
-    # 2. Частота использования каждого прибора (за весь период)
-    device_usage = {}
-    for device in DEVICE_WEIGHTS.keys():
-        device_col = device.lower()
-        if device_col in recent.columns:
-            usage_pct = recent[device_col].mean() * 100
-        else:
-            # Если колонки нет, пробуем с заглавной
-            usage_pct = recent[device].mean() * 100 if device in recent.columns else 0
-        device_usage[device] = usage_pct
-    
-    # 3. Тренд (растет или падает потребление)
-    if len(recent) >= 24:
-        recent_avg = recent['energy'].tail(24).mean()
-        older_avg = recent['energy'].head(24).mean()
-        trend_factor = max(0.5, min(1.5, recent_avg / older_avg if older_avg > 0 else 1))
-    else:
-        trend_factor = 1
-    
-    # 4. Расчет амортизации для каждого прибора
-    amortization_results = {}
-    for device, weight in DEVICE_WEIGHTS.items():
-        usage = device_usage[device]
-        
-        # Базовая амортизация от частоты использования
-        usage_score = (usage / 100) * 50
-        
-        # Корректировка от нагрузки (чем выше нагрузка, тем быстрее износ)
-        load_score = energy_factor * 30
-        
-        # Долговременная составляющая (базовый износ)
-        base_score = weight * 20
-        
-        # Итоговая амортизация
-        score = usage_score + load_score + base_score
-        score = score * trend_factor
-        
-        # Ограничиваем и округляем
-        score = min(100, max(5, round(score, 1)))
-        
-        amortization_results[device] = {
-            'score': score,
-            'usage': round(usage, 1),
-            'weight': round(weight * 100),
-            'status': get_amortization_status(score)
-        }
-    
-    # Общая амортизация (взвешенная сумма)
-    overall = sum(amortization_results[d]['score'] * DEVICE_WEIGHTS[d] for d in DEVICE_WEIGHTS)
-    overall = min(100, max(5, round(overall, 1)))
-    
-    return {
-        'devices': amortization_results,
-        'overall': overall,
-        'status': get_amortization_status(overall),
-        'avg_energy': round(avg_energy, 2),
-        'peak_energy': round(max_energy, 2),
-        'trend': round(trend_factor, 2)
-    }
-
-def get_amortization_status(score):
-    if score < 25:
-        return {'text': 'Отличное', 'color': '#4caf50', 'icon': '✅', 'class': 'excellent'}
-    elif score < 45:
-        return {'text': 'Хорошее', 'color': '#8bc34a', 'icon': '🟢', 'class': 'good'}
-    elif score < 65:
-        return {'text': 'Удовлетворительное', 'color': '#ffc107', 'icon': '⚠️', 'class': 'warning'}
-    elif score < 85:
-        return {'text': 'Требует внимания', 'color': '#ff9800', 'icon': '🔴', 'class': 'attention'}
-    else:
-        return {'text': 'Критическое', 'color': '#f44336', 'icon': '‼️', 'class': 'critical'}
-
 def data_stream_loop():
-    """Фоновый поток для передачи данных с периодическим обновлением амортизации."""
-    global current_index, is_streaming, csv_data, historical_window, last_amortization_update, amortization_cache
-    
-    print("📡 Поток данных запущен")
-    
-    # Сразу заполняем историческое окно первыми 500 записями
-    initial_count = min(500, len(csv_data))
-    for i in range(initial_count):
-        record = csv_data[i]
-        historical_window.append({
-            'timestamp': record.get('Unix Timestamp', 0),
-            'energy': record.get('Energy Consumption (kWh)', 0),
-            'voltage': record.get('Voltage', 0),
-            'television': record.get('Television', 0),
-            'dryer': record.get('Dryer', 0),
-            'oven': record.get('Oven', 0),
-            'refrigerator': record.get('Refrigerator', 0),
-            'microwave': record.get('Microwave', 0)
-        })
-    
-    # Первый расчет амортизации
-    amortization_cache = calculate_stable_amortization()
-    last_amortization_update = time.time()
+    """Фоновый поток для передачи данных."""
+    global current_index, is_streaming, csv_data
+
+    print("▶️ Поток данных запущен")
     
     while is_streaming and current_index < len(csv_data):
         record = csv_data[current_index]
         
-        # Добавляем запись в историческое окно
-        current_record = {
-            'timestamp': record.get('Unix Timestamp', 0),
-            'energy': record.get('Energy Consumption (kWh)', 0),
-            'voltage': record.get('Voltage', 0),
-            'television': record.get('Television', 0),
-            'dryer': record.get('Dryer', 0),
-            'oven': record.get('Oven', 0),
-            'refrigerator': record.get('Refrigerator', 0),
-            'microwave': record.get('Microwave', 0)
-        }
-        historical_window.append(current_record)
-        
-        # Обновляем амортизацию раз в 30 секунд (а не для каждой записи)
-        current_time = time.time()
-        if current_time - last_amortization_update > 30 and len(historical_window) >= 100:
-            amortization_cache = calculate_stable_amortization()
-            last_amortization_update = current_time
-        
-        # Используем кешированную амортизацию
-        amortization_to_send = amortization_cache if amortization_cache else {
-            'devices': {}, 'overall': 0, 'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'},
-            'avg_energy': 0, 'peak_energy': 0
-        }
-        
-        # Отправляем данные клиенту
+        # Отправляем данные клиентам
         data_to_emit = {
             'datetime': record.get('Datetime', ''),
             'datetime_short': record.get('Datetime', '')[5:16] if record.get('Datetime') else '',
             'energy': round(record.get('Energy Consumption (kWh)', 0), 2),
             'voltage': round(record.get('Voltage', 0), 1),
             'apparent_power': round(record.get('Apparent Power', 0), 1),
-            'devices': {
-                'television': record.get('Television', 0),
-                'dryer': record.get('Dryer', 0),
-                'oven': record.get('Oven', 0),
-                'refrigerator': record.get('Refrigerator', 0),
-                'microwave': record.get('Microwave', 0)
-            },
-            'amortization': amortization_to_send,
+            'television': record.get('Television', 0),
+            'dryer': record.get('Dryer', 0),
+            'oven': record.get('Oven', 0),
+            'refrigerator': record.get('Refrigerator', 0),
+            'microwave': record.get('Microwave', 0),
             'progress': round((current_index + 1) / len(csv_data) * 100, 1),
             'current': current_index + 1,
             'total': len(csv_data)
@@ -222,6 +73,7 @@ def data_stream_loop():
     is_streaming = False
 
 def start_data_stream():
+    """Запускает поток передачи данных."""
     global is_streaming, stream_thread, current_index
     if is_streaming:
         return
@@ -231,13 +83,31 @@ def start_data_stream():
     stream_thread = threading.Thread(target=data_stream_loop)
     stream_thread.daemon = True
     stream_thread.start()
+    print("🎬 Поток данных запущен")
 
 @app.route('/')
 def index():
+    """Главная страница"""
     return render_template('index.html')
+
+@app.route('/analytics')
+def analytics():
+    """Страница аналитики и советов по экономии"""
+    return render_template('analytics.html')
+
+@app.route('/calculator')
+def calculator():
+    """Калькулятор сценариев Что, если?"""
+    return render_template('calculator.html')
+
+@app.route('/automation')
+def automation():
+    """Страница автоматизации и рекомендаций"""
+    return render_template('automation.html')
 
 @app.route('/api/status')
 def get_status():
+    """Статус системы"""
     total = len(csv_data)
     progress = round((current_index / total * 100), 1) if total > 0 else 0
     return jsonify({
@@ -249,14 +119,17 @@ def get_status():
 
 @app.route('/api/data')
 def get_initial_data():
+    """Возвращает данные для графиков"""
     if not csv_data:
         return jsonify([])
-    return jsonify(csv_data[:100])
+    # Возвращаем последние 500 записей для производительности
+    return jsonify(csv_data[-500:])
 
 @app.route('/api/statistics')
 def get_statistics():
+    """Возвращает статистику"""
     if not csv_data:
-        return jsonify({'avg_energy': 0, 'max_energy': 0, 'min_energy': 0, 'avg_voltage': 230, 'total_records': 0})
+        return jsonify({'avg_energy': 0, 'max_energy': 0, 'min_energy': 0, 'total_records': 0, 'avg_voltage': 230})
     
     energies = [d.get('Energy Consumption (kWh)', 0) for d in csv_data]
     voltages = [d.get('Voltage', 0) for d in csv_data if d.get('Voltage', 0) > 0]
@@ -269,28 +142,85 @@ def get_statistics():
         'total_records': len(csv_data)
     })
 
+@app.route('/api/amortization')
+def get_amortization():
+    """Расчет амортизации для аналитики"""
+    if len(csv_data) < 50:
+        return jsonify({'devices': {}, 'overall': 0, 'status': {'text': 'Недостаточно данных'}})
+    
+    # Берем последние 500 записей для расчета
+    recent = csv_data[-500:]
+    
+    devices = ['Television', 'Dryer', 'Oven', 'Refrigerator', 'Microwave']
+    device_keys = ['television', 'dryer', 'oven', 'refrigerator', 'microwave']
+    
+    total_energy = sum(d.get('Energy Consumption (kWh)', 0) for d in recent)
+    device_stats = {}
+    
+    for i, device in enumerate(devices):
+        key = device_keys[i]
+        device_energy = 0
+        device_count = 0
+        for d in recent:
+            if d.get(key, 0) == 1:
+                device_energy += d.get('Energy Consumption (kWh)', 0)
+                device_count += 1
+        
+        usage_pct = (device_count / len(recent)) * 100 if recent else 0
+        energy_pct = (device_energy / total_energy * 100) if total_energy > 0 else 0
+        
+        # Расчет амортизации
+        if device == 'Refrigerator':
+            score = min(100, usage_pct * 0.6 + energy_pct * 0.4)
+        elif device == 'Dryer':
+            score = min(100, usage_pct * 0.7 + energy_pct * 0.5)
+        elif device == 'Oven':
+            score = min(100, usage_pct * 0.5 + energy_pct * 0.6)
+        else:
+            score = min(100, usage_pct * 0.4 + energy_pct * 0.3)
+        
+        device_stats[device] = {
+            'score': round(score, 1),
+            'usage': round(usage_pct, 1),
+            'energy_pct': round(energy_pct, 1)
+        }
+    
+    overall = sum(device_stats[d]['score'] for d in devices) / len(devices)
+    
+    def get_status(score):
+        if score < 30: return {'text': 'Отличное', 'color': '#4caf50', 'icon': '✅'}
+        if score < 50: return {'text': 'Хорошее', 'color': '#8bc34a', 'icon': '🟢'}
+        if score < 70: return {'text': 'Удовлетворительное', 'color': '#ffc107', 'icon': '⚠️'}
+        return {'text': 'Требует внимания', 'color': '#ff9800', 'icon': '🔴'}
+    
+    return jsonify({
+        'devices': device_stats,
+        'overall': round(overall, 1),
+        'status': get_status(overall)
+    })
+
 @socketio.on('connect')
 def handle_connect():
+    """Обработчик подключения WebSocket"""
     print("🔌 Клиент подключен")
     if csv_data and not is_streaming:
         start_data_stream()
 
-@app.route('/analytics')
-def analytics():
-    """Страница аналитики и советов по экономии"""
-    return render_template('analytics.html')
-    
 if __name__ == '__main__':
     print("="*50)
-    print("СИСТЕМА КОНТРОЛЯ ЭНЕРГОПОТРЕБЛЕНИЯ")
+    print("СИСТЕМА УПРАВЛЕНИЯ ЭНЕРГОПОТРЕБЛЕНИЕМ")
     print("Умный дом с предиктивной амортизацией")
     print("="*50)
     
     if load_csv_data():
-        print(f"\n Сервер запущен: http://localhost:5000")
-        print(" Предиктивная амортизация рассчитывается раз в 30 секунд")
+        print(f"\n🌐 Сервер запущен: http://localhost:5000")
+        print("📊 Страницы:")
+        print("   - Главная: /")
+        print("   - Аналитика: /analytics")
+        print("   - Калькулятор: /calculator")
+        print("   - Рекомендации: /automation")
     else:
-        print("\n Ошибка загрузки данных")
+        print("\n❌ Ошибка загрузки данных")
         exit(1)
 
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)

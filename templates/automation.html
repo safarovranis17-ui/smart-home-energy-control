@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система поддержки принятия решений - Умный дом</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            color: white;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .nav-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.3); }
+        
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .recommendation {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+        }
+        .recommendation.warning { background: #fff3e0; border-left-color: #ff9800; }
+        .recommendation.critical { background: #ffebee; border-left-color: #f44336; }
+        .recommendation-title { font-weight: bold; margin-bottom: 8px; }
+        .recommendation-desc { font-size: 14px; margin-bottom: 8px; }
+        .recommendation-action {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            display: inline-block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .stat-value { font-size: 28px; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; font-size: 13px; margin-top: 5px; }
+        
+        .rule-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .rule-name { font-weight: bold; margin-bottom: 8px; }
+        .rule-desc { font-size: 13px; color: #666; margin-bottom: 8px; }
+        .rule-trigger { font-family: monospace; font-size: 12px; background: #e9ecef; padding: 5px 10px; border-radius: 8px; display: inline-block; }
+        
+        .action-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+        .action-btn:hover { background: #5a67d8; }
+        
+        .notification-log {
+            background: #1e1e1e;
+            color: #0f0;
+            font-family: monospace;
+            font-size: 12px;
+            padding: 15px;
+            border-radius: 10px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        .notification-log .notification {
+            background: #2d2d2d;
+            margin-bottom: 8px;
+            padding: 8px;
+            border-radius: 5px;
+        }
+        .notification-log .notification.warning { border-left: 3px solid #ff9800; }
+        .notification-log .notification.critical { border-left: 3px solid #f44336; }
+        
+        .email-preview {
+            background: white;
+            border-radius: 10px;
+            padding: 0;
+            border: 1px solid #ddd;
+            margin-top: 15px;
+        }
+        .email-header {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            border-radius: 10px 10px 0 0;
+        }
+        .email-body {
+            padding: 15px;
+        }
+        
+        .footer { text-align: center; color: rgba(255,255,255,0.6); padding: 20px; font-size: 12px; }
+        
+        @media (max-width: 768px) {
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        .demo-badge {
+            background: #ff9800;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        
+        input, select, textarea {
+            font-family: inherit;
+        }
+        
+        input[type="email"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+        
+        .flex-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .btn-small {
+            padding: 8px 16px;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Система поддержки принятия решений</h1>
+            <p>Анализ данных, формирование рекомендаций и уведомления</p>
+            <div>
+                <a href="/" class="nav-link">← На главную</a>
+                <a href="/analytics" class="nav-link">📊 Аналитика</a>
+                <a href="/calculator" class="nav-link">🔮 Калькулятор</a>
+            </div>
+        </div>
+        
+        <div class="stats-grid" id="stats-container">
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Текущая нагрузка</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Прогноз на сегодня</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Активных рекомендаций</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Потенциал экономии</div></div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">⚡ Активные рекомендации</div>
+            <div id="recommendations-container">
+                <div class="recommendation">📊 Анализируем данные...</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">📋 База знаний правил энергосбережения</div>
+            
+            <div class="rule-card">
+                <div class="rule-name">📉 Правило 1: Снижение пиковой нагрузки</div>
+                <div class="rule-desc">При превышении порога 3.5 кВт·ч в вечерние часы (17:00-21:00) рекомендуется отключить неиспользуемые приборы.</div>
+                <div class="rule-trigger">Условие: потребление > 3.5 кВт·ч И час ∈ [17,21]</div>
+            </div>
+            
+            <div class="rule-card">
+                <div class="rule-name">🌙 Правило 2: Ночная экономия</div>
+                <div class="rule-desc">В ночное время (23:00-06:00) рекомендуется выключать телевизор и другие неиспользуемые приборы.</div>
+                <div class="rule-trigger">Условие: час ∈ [23,6] И потребление > 0.5 кВт·ч</div>
+            </div>
+            
+            <div class="rule-card">
+                <div class="rule-name">⚠️ Правило 3: Защита от перегрузки</div>
+                <div class="rule-desc">При критической нагрузке (> 5.0 кВт·ч) рекомендуется отключить энергоемкие приборы для предотвращения аварии.</div>
+                <div class="rule-trigger">Условие: потребление > 5.0 кВт·ч</div>
+            </div>
+            
+            <div class="rule-card">
+                <div class="rule-name">🔄 Правило 4: Оптимизация циклов</div>
+                <div class="rule-desc">Сушилку и стиральную машину рекомендуется включать в ночное время или днем при низкой базовой нагрузке.</div>
+                <div class="rule-trigger">Условие: потребление < 1.5 кВт·ч И час ∈ [10,16]</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">🔔 Настройка уведомлений</div>
+            <div class="flex-row" style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="notify-browser" checked> Уведомления в браузере
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="notify-email"> Email-уведомления
+                </label>
+            </div>
+            
+            <div id="email-settings" style="display: none;">
+                <input type="email" id="notification-email" placeholder="Введите email для получения уведомлений">
+                <div style="font-size: 12px; color: #888; margin-top: 5px;">В реальной системе на этот адрес будут отправляться уведомления</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">📧 Email-уведомления (демонстрация)</div>
+            <div style="background: #f8f9fa; border-radius: 15px; padding: 20px;">
+                <div style="margin-bottom: 15px;">
+                    <span class="demo-badge">Демонстрационный режим</span>
+                </div>
+                <p style="margin-bottom: 10px;">В реальной системе на указанный email будут отправляться уведомления:</p>
+                <div class="flex-row">
+                    <input type="email" id="demo-email" placeholder="your@email.com" style="flex: 1;">
+                    <button onclick="showEmailPreview()" class="action-btn">Показать пример письма</button>
+                </div>
+                
+                <div id="email-preview" style="display: none;"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-title">📝 Журнал уведомлений</div>
+            <div id="notification-log" class="notification-log">
+                <div class="notification">🟢 Система уведомлений запущена</div>
+                <div class="notification">💡 Уведомления в браузере активны</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Система поддержки принятия решений | Рекомендации основаны на анализе данных</p>
+            <p style="font-size: 11px; margin-top: 5px;">Email-уведомления представлены в демонстрационном режиме</p>
+        </div>
+    </div>
+    
+    <script>
+        let lastEnergy = 0;
+        let notificationCount = 0;
+        
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+        
+        function showBrowserNotification(title, body, type = 'info') {
+            const notifyBrowser = document.getElementById('notify-browser')?.checked;
+            if (!notifyBrowser) return;
+            
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(`🏠 Умный дом - ${title}`, {
+                    body: body,
+                    icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23667eea"%3E%3Cpath d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/%3E%3C/svg%3E',
+                    silent: false
+                });
+            }
+            addToLog(title, body, type);
+        }
+        
+        function addToLog(title, body, type) {
+            const logContainer = document.getElementById('notification-log');
+            const time = new Date().toLocaleTimeString();
+            const typeClass = type === 'critical' ? 'critical' : (type === 'warning' ? 'warning' : '');
+            const icon = type === 'critical' ? '🚨' : (type === 'warning' ? '⚠️' : '📧');
+            
+            const entry = document.createElement('div');
+            entry.className = `notification ${typeClass}`;
+            entry.innerHTML = `
+                <div><strong>${icon} ${title}</strong> - ${time}</div>
+                <div style="font-size: 11px; margin-top: 4px;">${body}</div>
+            `;
+            logContainer.insertBefore(entry, logContainer.firstChild);
+            
+            if (logContainer.children.length > 30) {
+                logContainer.removeChild(logContainer.lastChild);
+            }
+            
+            notificationCount++;
+        }
+        
+        function showEmailPreview() {
+            const email = document.getElementById('demo-email').value;
+            if (!email) {
+                alert('Введите email для демонстрации');
+                return;
+            }
+            
+            const now = new Date();
+            const hour = now.getHours();
+            const energy = lastEnergy || 2.5;
+            
+            let subject = '';
+            let message = '';
+            let type = 'info';
+            
+            if (energy > 5.0) {
+                subject = 'КРИТИЧЕСКАЯ НАГРУЗКА';
+                message = `Внимание! В ${hour}:00 зафиксировано критическое энергопотребление ${energy.toFixed(2)} кВт·ч. Рекомендуется немедленно отключить часть приборов.`;
+                type = 'critical';
+            } else if (energy > 3.5 && (hour >= 17 && hour <= 21)) {
+                subject = 'Высокая нагрузка в пиковый час';
+                message = `Зафиксировано повышенное потребление ${energy.toFixed(2)} кВт·ч в вечерний пик (${hour}:00). Рекомендуется перенести работу энергоемких приборов на время после 22:00.`;
+                type = 'warning';
+            } else if (hour >= 23 || hour <= 6) {
+                subject = 'Ночное энергопотребление';
+                message = `В ночное время (${hour}:00) потребление составляет ${energy.toFixed(2)} кВт·ч. Проверьте, не остались ли включенными телевизор, компьютер или другие приборы.`;
+                type = 'night';
+            } else {
+                subject = 'Отчет об энергопотреблении';
+                message = `В ${hour}:00 ваше потребление составило ${energy.toFixed(2)} кВт·ч. Это в пределах нормы. Так держать!`;
+            }
+            
+            const previewDiv = document.getElementById('email-preview');
+            previewDiv.innerHTML = `
+                <div class="email-preview">
+                    <div class="email-header">📧 Пример уведомления</div>
+                    <div class="email-body">
+                        <div style="margin-bottom: 10px;"><strong>Кому:</strong> ${email}</div>
+                        <div style="margin-bottom: 10px;"><strong>Тема:</strong> ${subject}</div>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                            ${message}
+                        </div>
+                        <div style="font-size: 12px; color: #888; border-top: 1px solid #ddd; padding-top: 10px; margin-top: 10px;">
+                            Это демонстрационное письмо. В реальной системе такие уведомления будут отправляться автоматически.
+                        </div>
+                        <button onclick="sendTestEmailDemo()" style="margin-top: 10px; padding: 8px 16px; background: #4caf50; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            📧 Отправить тестовое письмо (демо)
+                        </button>
+                    </div>
+                </div>
+            `;
+            previewDiv.style.display = 'block';
+        }
+        
+        function sendTestEmailDemo() {
+            const email = document.getElementById('demo-email').value;
+            addToLog('Тестовое Email-уведомление', `На ${email} было бы отправлено уведомление в реальной системе`, 'info');
+            alert(`📧 В реальной системе на ${email} было бы отправлено уведомление.\n\nВ дипломной работе демонстрируется возможность интеграции с Email-сервисами через SMTP.`);
+        }
+        
+        document.getElementById('notify-email')?.addEventListener('change', function(e) {
+            const emailSettings = document.getElementById('email-settings');
+            if (emailSettings) {
+                emailSettings.style.display = e.target.checked ? 'block' : 'none';
+            }
+        });
+        
+        async function loadRecommendations() {
+            try {
+                const response = await fetch('/api/data?limit=10');
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    const latest = data[data.length - 1];
+                    let currentEnergy = latest['Energy Consumption (kWh)'] || 0;
+                    if (currentEnergy === 0 && latest.energy) currentEnergy = latest.energy;
+                    lastEnergy = currentEnergy;
+                    
+                    const hour = new Date().getHours();
+                    let recommendations = [];
+                    let hasCritical = false;
+                    let hasWarning = false;
+                    
+                    document.getElementById('stats-container').innerHTML = `
+                        <div class="stat-card"><div class="stat-value">${currentEnergy.toFixed(2)} кВт·ч</div><div class="stat-label">Текущая нагрузка</div></div>
+                        <div class="stat-card"><div class="stat-value">${(currentEnergy * 8).toFixed(0)} кВт·ч</div><div class="stat-label">Прогноз на сегодня</div></div>
+                        <div class="stat-card"><div class="stat-value" id="rec-count">--</div><div class="stat-label">Активных рекомендаций</div></div>
+                        <div class="stat-card"><div class="stat-value">${(currentEnergy * 30 * 0.15).toFixed(0)} ₽</div><div class="stat-label">Потенциал экономии</div></div>
+                    `;
+                    
+                    if (currentEnergy > 5.0) {
+                        recommendations.push({
+                            title: 'КРИТИЧЕСКАЯ НАГРУЗКА',
+                            desc: `Потребление достигло ${currentEnergy.toFixed(2)} кВт·ч, что превышает безопасный порог.`,
+                            action: 'НЕМЕДЛЕННО отключите часть энергоемких приборов (обогреватели, духовку, сушилку).',
+                            type: 'critical'
+                        });
+                        hasCritical = true;
+                        showBrowserNotification('Критическая нагрузка', `Потребление ${currentEnergy.toFixed(2)} кВт·ч! Немедленно снизьте нагрузку.`, 'critical');
+                    }
+                    
+                    if (currentEnergy > 3.5 && (hour >= 17 && hour <= 21) && !hasCritical) {
+                        recommendations.push({
+                            title: 'Высокая нагрузка в пиковый час',
+                            desc: `Текущее потребление ${currentEnergy.toFixed(2)} кВт·ч превышает оптимальное.`,
+                            action: 'Отключите неиспользуемые приборы. Перенесите работу энергоемких устройств на время после 22:00.',
+                            type: 'warning'
+                        });
+                        hasWarning = true;
+                        showBrowserNotification('Пиковая нагрузка', `Потребление ${currentEnergy.toFixed(2)} кВт·ч. Рекомендуется снизить нагрузку.`, 'warning');
+                    }
+                    
+                    if ((hour >= 23 || hour <= 6) && currentEnergy > 0.8 && !hasCritical && !hasWarning) {
+                        recommendations.push({
+                            title: 'Ночное энергопотребление',
+                            desc: `В ночное время (${hour}:00) потребление составляет ${currentEnergy.toFixed(2)} кВт·ч.`,
+                            action: 'Проверьте, какие приборы остались включенными (телевизор, компьютер, зарядные устройства).',
+                            type: 'warning'
+                        });
+                        showBrowserNotification('Ночное потребление', `В ${hour}:00 потребление ${currentEnergy.toFixed(2)} кВт·ч. Проверьте приборы.`, 'warning');
+                    }
+                    
+                    if (currentEnergy < 1.5 && (hour >= 10 && hour <= 16) && !hasCritical && !hasWarning && recommendations.length < 2) {
+                        recommendations.push({
+                            title: 'Благоприятное время для энергоемких задач',
+                            desc: `Сейчас низкая нагрузка (${currentEnergy.toFixed(2)} кВт·ч).`,
+                            action: 'Запустите стирку, сушку или посудомойку. Это снизит нагрузку на сеть в вечерние часы.',
+                            type: 'info'
+                        });
+                    }
+                    
+                    if (recommendations.length === 0) {
+                        recommendations.push({
+                            title: 'Все показатели в норме',
+                            desc: `Текущее потребление ${currentEnergy.toFixed(2)} кВт·ч находится в оптимальном диапазоне.`,
+                            action: 'Продолжайте следовать принципам энергосбережения.',
+                            type: 'info'
+                        });
+                    }
+                    
+                    document.getElementById('rec-count').innerHTML = recommendations.length;
+                    
+                    const container = document.getElementById('recommendations-container');
+                    container.innerHTML = recommendations.map(rec => `
+                        <div class="recommendation ${rec.type === 'warning' ? 'warning' : (rec.type === 'critical' ? 'critical' : '')}">
+                            <div class="recommendation-title">${rec.title}</div>
+                            <div class="recommendation-desc">${rec.desc}</div>
+                            <div class="recommendation-action">💡 ${rec.action}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                console.error('Ошибка:', e);
+            }
+        }
+        
+        loadRecommendations();
+        setInterval(loadRecommendations, 10000);
+    </script>
+</body>
+</html>
