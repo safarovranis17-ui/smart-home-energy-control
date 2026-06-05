@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор сценариев "Что, если?" - Умный дом</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.1.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            color: white;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { opacity: 0.9; font-size: 14px; }
+        .nav-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: white;
+            text-decoration: none;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .nav-link:hover { background: rgba(255,255,255,0.3); }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .device-item {
+            margin-bottom: 20px;
+        }
+        .device-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+        }
+        .hours-input {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .result-value {
+            font-size: 48px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        .result-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .savings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .savings-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+        }
+        .savings-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4caf50;
+        }
+        
+        .scenario-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .scenario-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            background: #f0f0f0;
+            transition: all 0.3s;
+        }
+        .scenario-btn:hover { background: #667eea; color: white; }
+        
+        .tariff-input {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tariff-input input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .footer { text-align: center; color: rgba(255,255,255,0.6); padding: 20px; font-size: 12px; }
+        
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="tabs-container">
+    <div class="tabs">
+        <button class="tab-btn" onclick="location.href='/'">Мониторинг</button>
+        <button class="tab-btn" onclick="location.href='/analytics'">Аналитика и советы</button>
+        <button class="tab-btn active" onclick="location.href='/calculator'">Калькулятор экономии</button>
+    </div>
+    </div>
+        
+        <div class="main-grid">
+            <div class="card">
+                <div class="card-title">🔧 Настройка сценария</div>
+                
+                <div class="device-item">
+                    <div class="device-label">
+                        <span> Телевизор</span>
+                        <span><input type="number" id="tv-hours" class="hours-input" value="4" min="0" max="12"> часов в день</span>
+                    </div>
+                    <input type="range" id="tv-slider" min="0" max="12" value="4" step="0.5">
+                </div>
+                
+                <div class="device-item">
+                    <div class="device-label">
+                        <span> Сушилка</span>
+                        <span><input type="number" id="dryer-hours" class="hours-input" value="1.5" min="0" max="6" step="0.5"> часов в день</span>
+                    </div>
+                    <input type="range" id="dryer-slider" min="0" max="6" value="1.5" step="0.5">
+                </div>
+                
+                <div class="device-item">
+                    <div class="device-label">
+                        <span> Духовка</span>
+                        <span><input type="number" id="oven-hours" class="hours-input" value="1" min="0" max="5" step="0.5"> часов в день</span>
+                    </div>
+                    <input type="range" id="oven-slider" min="0" max="5" value="1" step="0.5">
+                </div>
+                
+                <div class="device-item">
+                    <div class="device-label">
+                        <span> Микроволновка</span>
+                        <span><input type="number" id="microwave-hours" class="hours-input" value="0.5" min="0" max="3" step="0.5"> часов в день</span>
+                    </div>
+                    <input type="range" id="microwave-slider" min="0" max="3" value="0.5" step="0.5">
+                </div>
+                
+                <div class="scenario-buttons">
+                    <button class="scenario-btn" onclick="setScenario('economy')"> Экономичный режим</button>
+                    <button class="scenario-btn" onclick="setScenario('normal')"> Обычный режим</button>
+                    <button class="scenario-btn" onclick="setScenario('active')"> Активный режим</button>
+                    <button class="scenario-btn" onclick="resetToCurrent()"> Вернуть текущие</button>
+                </div>
+                
+                <div class="tariff-input">
+                    <span> Стоимость электроэнергии:</span>
+                    <input type="number" id="tariff" value="5.5" step="0.5">
+                    <span>руб/кВт·ч</span>
+                    <button onclick="calculateSavings()" style="padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 10px; cursor: pointer;">Пересчитать</button>
+                </div>
+            </div>
+            
+            <div>
+                <div class="result-card">
+                    <div class="result-label"> Потенциальная экономия в год</div>
+                    <div class="result-value" id="yearly-savings">0 ₽</div>
+                    <div class="result-label">при выбранных настройках</div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title"> Детальный расчет</div>
+                    <div class="savings-grid">
+                        <div class="savings-card">
+                            <div class="savings-value" id="daily-savings">0 ₽</div>
+                            <div class="result-label">Экономия в день</div>
+                        </div>
+                        <div class="savings-card">
+                            <div class="savings-value" id="monthly-savings">0 ₽</div>
+                            <div class="result-label">Экономия в месяц</div>
+                        </div>
+                        
+                        <div class="savings-card">
+                            <div class="savings-value" id="percent-savings">0%</div>
+                            <div class="result-label">От текущего потребления</div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Калькулятор основан на ваших реальных данных </p>
+        </div>
+    </div>
+    
+    <script>
+        // Мощность приборов (кВт)
+        const DEVICE_POWER = {
+            television: 0.15,
+            dryer: 2.5,
+            oven: 2.0,
+            microwave: 1.2
+        };
+        
+        let currentHours = {
+            television: 4,
+            dryer: 1.5,
+            oven: 1,
+            microwave: 0.5
+        };
+        
+        let actualConsumption = null;
+        let chart = null;
+        
+        async function loadActualConsumption() {
+            try {
+                const response = await fetch('/api/statistics');
+                const stats = await response.json();
+                const monthlyKwh = stats.avg_energy * 24 * 30;
+                actualConsumption = {
+                    monthly: monthlyKwh,
+                    daily: monthlyKwh / 30,
+                    yearly: monthlyKwh * 12
+                };
+                calculateSavings();
+            } catch(e) {
+                console.error('Ошибка загрузки данных:', e);
+                actualConsumption = { monthly: 500, daily: 16.7, yearly: 6000 };
+                calculateSavings();
+            }
+        }
+        
+        function calculateCurrentConsumption() {
+            let totalKwhPerDay = 0;
+            totalKwhPerDay += currentHours.television * DEVICE_POWER.television;
+            totalKwhPerDay += currentHours.dryer * DEVICE_POWER.dryer;
+            totalKwhPerDay += currentHours.oven * DEVICE_POWER.oven;
+            totalKwhPerDay += currentHours.microwave * DEVICE_POWER.microwave;
+            return {
+                daily: totalKwhPerDay,
+                monthly: totalKwhPerDay * 30,
+                yearly: totalKwhPerDay * 365
+            };
+        }
+        
+        function calculateSavings() {
+            const tariff = parseFloat(document.getElementById('tariff').value) || 5.5;
+            const current = calculateCurrentConsumption();
+            
+            if (!actualConsumption) return;
+            
+            const yearlyKwhSaved = actualConsumption.yearly - current.yearly;
+            const yearlySavings = Math.max(0, yearlyKwhSaved * tariff);
+            const monthlySavings = yearlySavings / 12;
+            const dailySavings = monthlySavings / 30;
+            const percentSaved = (yearlyKwhSaved / actualConsumption.yearly * 100);
+            
+            document.getElementById('yearly-savings').innerHTML = `${Math.round(yearlySavings).toLocaleString()} ₽`;
+            document.getElementById('daily-savings').innerHTML = `${Math.round(dailySavings)} ₽`;
+            document.getElementById('monthly-savings').innerHTML = `${Math.round(monthlySavings)} ₽`;
+            document.getElementById('percent-savings').innerHTML = `${Math.max(0, percentSaved.toFixed(1))}%`;
+            
+            const co2Saved = (yearlyKwhSaved * 0.42).toFixed(0);
+            document.getElementById('co2-savings').innerHTML = `${co2Saved} кг`;
+            
+            updateChart(current, tariff);
+        }
+        
+        function updateChart(current, tariff) {
+            const currentCost = current.monthly * tariff;
+            const targetCost = (actualConsumption.monthly * 0.7) * tariff;
+            
+            const trace = {
+                x: ['Текущие расходы', 'При оптимизации'],
+                y: [currentCost, Math.min(currentCost, targetCost)],
+                type: 'bar',
+                marker: {
+                    color: ['#f44336', '#4caf50'],
+                    showscale: false
+                },
+                text: [`${Math.round(currentCost)} ₽`, `${Math.min(currentCost, targetCost)} ₽`],
+                textposition: 'auto'
+            };
+            
+            const layout = {
+                title: '',
+                xaxis: { title: 'Сценарий' },
+                yaxis: { title: 'Расход в месяц (₽)' }
+            };
+            
+            if (chart === null) {
+                Plotly.newPlot('comparison-chart', [trace], layout, { responsive: true });
+                chart = true;
+            } else {
+                Plotly.react('comparison-chart', [trace], layout);
+            }
+        }
+        
+        function setScenario(scenario) {
+            switch(scenario) {
+                case 'economy':
+                    currentHours = { television: 2, dryer: 0.5, oven: 0.5, microwave: 0.2 };
+                    break;
+                case 'normal':
+                    currentHours = { television: 4, dryer: 1.5, oven: 1, microwave: 0.5 };
+                    break;
+                case 'active':
+                    currentHours = { television: 8, dryer: 3, oven: 2.5, microwave: 1.5 };
+                    break;
+            }
+            updateSlidersAndInputs();
+            calculateSavings();
+        }
+        
+        function resetToCurrent() {
+            setScenario('normal');
+        }
+        
+        function updateSlidersAndInputs() {
+            document.getElementById('tv-slider').value = currentHours.television;
+            document.getElementById('tv-hours').value = currentHours.television;
+            document.getElementById('dryer-slider').value = currentHours.dryer;
+            document.getElementById('dryer-hours').value = currentHours.dryer;
+            document.getElementById('oven-slider').value = currentHours.oven;
+            document.getElementById('oven-hours').value = currentHours.oven;
+            document.getElementById('microwave-slider').value = currentHours.microwave;
+            document.getElementById('microwave-hours').value = currentHours.microwave;
+        }
+        
+        function bindSliders() {
+            const bind = (sliderId, inputId, device) => {
+                const slider = document.getElementById(sliderId);
+                const input = document.getElementById(inputId);
+                slider.addEventListener('input', () => {
+                    const val = parseFloat(slider.value);
+                    input.value = val;
+                    currentHours[device] = val;
+                    calculateSavings();
+                });
+                input.addEventListener('change', () => {
+                    let val = parseFloat(input.value);
+                    if (isNaN(val)) val = 0;
+                    val = Math.max(0, Math.min(val, 12));
+                    slider.value = val;
+                    currentHours[device] = val;
+                    calculateSavings();
+                });
+            };
+            bind('tv-slider', 'tv-hours', 'television');
+            bind('dryer-slider', 'dryer-hours', 'dryer');
+            bind('oven-slider', 'oven-hours', 'oven');
+            bind('microwave-slider', 'microwave-hours', 'microwave');
+        }
+        
+        loadActualConsumption();
+        bindSliders();
+    </script>
+</body>
+</html>

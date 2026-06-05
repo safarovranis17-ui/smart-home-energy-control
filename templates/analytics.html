@@ -15,7 +15,6 @@
         }
         .container { max-width: 1200px; margin: 0 auto; }
         
-        /* Header */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 20px;
@@ -37,7 +36,6 @@
         }
         .nav-link:hover { background: rgba(255,255,255,0.3); }
         
-        /* Cards */
         .card {
             background: white;
             border-radius: 20px;
@@ -53,7 +51,6 @@
             border-bottom: 2px solid #667eea;
         }
         
-        /* Insights */
         .insight-card {
             background: #f0f7ff;
             border-left: 4px solid #4caf50;
@@ -62,12 +59,10 @@
             border-radius: 10px;
         }
         .insight-card.warning { border-left-color: #ff9800; background: #fff8e1; }
-        .insight-card.danger { border-left-color: #f44336; background: #ffebee; }
         .insight-icon { font-size: 24px; margin-right: 15px; float: left; }
         .insight-text { margin-left: 45px; }
         .insight-title { font-weight: bold; margin-bottom: 5px; }
         
-        /* Stats Grid */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -84,7 +79,6 @@
         .stat-value { font-size: 28px; font-weight: bold; color: #667eea; }
         .stat-label { color: #666; font-size: 13px; margin-top: 5px; }
         
-        /* Tables */
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -108,6 +102,30 @@
         .badge-low { background: #4caf50; color: white; }
         
         .footer { text-align: center; color: rgba(255,255,255,0.6); padding: 20px; font-size: 12px; }
+        .tariff-input {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 15px;
+            border-radius: 20px;
+            margin-left: 15px;
+        }
+        .tariff-input input {
+            width: 60px;
+            padding: 5px;
+            border: none;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .tariff-input button {
+            padding: 5px 10px;
+            border-radius: 10px;
+            border: none;
+            background: white;
+            color: #667eea;
+            cursor: pointer;
+        }
         
         @media (max-width: 768px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -115,39 +133,36 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 Аналитика и советы по экономии</h1>
-            <p>Персональные рекомендации для снижения энергопотребления</p>
-            <a href="/" class="nav-link">← На главную</a>
+        <div class="tabs-container">
+        <div class="tabs">
+            <button class="tab-btn" onclick="location.href='/'">Мониторинг</button>
+            <button class="tab-btn active" onclick="location.href='/analytics'">Аналитика и советы</button>
+            <button class="tab-btn" onclick="location.href='/calculator'">Калькулятор экономии</button>
+        </div>
         </div>
         
-        <!-- Быстрая статистика -->
         <div class="stats-grid" id="quick-stats">
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Среднее в день, кВт·ч</div></div>
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Прогноз на месяц, кВт·ч</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Расход в месяц</div></div>
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Экономия при оптимизации</div></div>
-            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Выбросов CO₂, кг</div></div>
         </div>
         
-        <!-- Интеллектуальные советы -->
         <div class="card">
-            <div class="card-title">💡 Персональные советы по экономии</div>
+            <div class="card-title"> Персональные советы по экономии</div>
             <div id="insights-container">
-                <div class="insight-card">📊 Анализируем ваши данные...</div>
+                <div class="insight-card"> Анализируем ваши данные...</div>
             </div>
         </div>
         
-        <!-- Часы пик -->
         <div class="card">
-            <div class="card-title">⏰ Часы пикового потребления</div>
+            <div class="card-title"> Часы пикового потребления</div>
             <div id="peak-hours-chart" style="height: 300px;"></div>
             <div id="peak-advice" class="insight-card" style="margin-top: 15px;"></div>
         </div>
         
-        <!-- Рейтинг приборов -->
         <div class="card">
-            <div class="card-title">🔧 Потенциал экономии по приборам</div>
+            <div class="card-title"> Потенциал экономии по приборам</div>
             <table class="data-table" id="devices-table">
                 <thead>
                     <tr><th>Прибор</th><th>Среднее потребление</th><th>Доля от общего</th><th>Потенциал экономии</th><th>Рекомендация</th></tr>
@@ -158,9 +173,8 @@
             </table>
         </div>
         
-        <!-- Сравнение с оптимальным профилем -->
         <div class="card">
-            <div class="card-title">📈 Ваш профиль vs Оптимальный профиль</div>
+            <div class="card-title"> Ваш профиль vs Оптимальный профиль</div>
             <div id="comparison-chart" style="height: 350px;"></div>
             <div id="comparison-insight" class="insight-card" style="margin-top: 15px;"></div>
         </div>
@@ -172,59 +186,88 @@
     
     <script>
         let allData = [];
-        let hourlyStats = {};
-        let deviceStats = {};
         let optimalProfile = null;
+        let currentTariff = 5.5;
         
-        // Функция для получения класса интенсивности
-        function getIntensityClass(value) {
-            if (value > 3.5) return 'badge-high';
-            if (value > 2.0) return 'badge-medium';
-            return 'badge-low';
+        // Константы
+        const RECORDS_PER_DAY = 96;  // 24 часа / 0.25 часа = 96 записей в день
+        
+        function getTariff() {
+            return parseFloat(document.getElementById('tariff').value) || 5.5;
         }
         
-        // Загрузка данных с сервера
+        function updateTariff() {
+            currentTariff = getTariff();
+            calculateStats();
+            generateInsights();
+        }
+        
+        // Единая функция расчета месячного потребления
+        function calculateMonthlyKwh(avgPerRecord) {
+            const avgDaily = avgPerRecord * RECORDS_PER_DAY;
+            return avgDaily * 30;
+        }
+        
         async function loadData() {
             try {
                 const response = await fetch('/api/data?limit=5000');
-                allData = await response.json();
-                console.log(`Загружено ${allData.length} записей`);
+                const data = await response.json();
                 
-                calculateStats();
-                calculatePeakHours();
-                calculateDeviceStats();
-                calculateOptimalProfile();
-                renderComparisonChart();
-                
+                if (data && data.length > 0) {
+                    allData = data;
+                    console.log(`Загружено ${allData.length} записей`);
+                    calculateStats();
+                    calculatePeakHours();
+                    calculateDeviceStats();
+                    calculateOptimalProfile();
+                    renderComparisonChart();
+                    generateInsights();
+                } else {
+                    document.getElementById('insights-container').innerHTML = '<div class="insight-card"> Нет данных. Убедитесь, что файл data/smart_home_dataset.csv загружен.</div>';
+                }
             } catch(e) {
                 console.error('Ошибка загрузки:', e);
-                document.getElementById('insights-container').innerHTML = '<div class="insight-card danger">⚠️ Не удалось загрузить данные. Убедитесь, что сервер запущен.</div>';
+                document.getElementById('insights-container').innerHTML = '<div class="insight-card"> Ошибка загрузки данных. Проверьте подключение к серверу.</div>';
             }
         }
         
-        // Расчет общей статистики
         function calculateStats() {
+            if (!allData.length) return;
+            
             const energies = allData.map(d => d['Energy Consumption (kWh)'] || 0);
-            const avgDaily = (energies.reduce((a,b) => a+b, 0) / energies.length) * 96; // 96 = 24ч / 15мин
-            const monthly = avgDaily * 30;
-            const potentialSavings = monthly * 0.15; // 15% потенциал экономии
-            const co2 = monthly * 0.42; // 0.42 кг CO₂ на кВт·ч
+            const avgPerRecord = energies.reduce((a,b) => a+b, 0) / energies.length;
+            
+            // Единый расчет для всех метрик
+            const avgDaily = avgPerRecord * RECORDS_PER_DAY;
+            const monthlyKwh = avgDaily * 30;
+            const monthlyCost = monthlyKwh * currentTariff;
+            const potentialSavings = monthlyCost * 0.15;
             
             document.getElementById('quick-stats').innerHTML = `
-                <div class="stat-card"><div class="stat-value">${avgDaily.toFixed(1)} кВт·ч</div><div class="stat-label">Среднее в день</div></div>
-                <div class="stat-card"><div class="stat-value">${monthly.toFixed(0)} кВт·ч</div><div class="stat-label">Прогноз на месяц</div></div>
-                <div class="stat-card"><div class="stat-value">≈ ${(potentialSavings * 5).toFixed(0)} ₽</div><div class="stat-label">Экономия при оптимизации</div></div>
-                <div class="stat-card"><div class="stat-value">${co2.toFixed(0)} кг</div><div class="stat-label">Выбросов CO₂ в месяц</div></div>
+                <div class="stat-card"><div class="stat-value">${avgDaily.toFixed(1)}</div><div class="stat-label">Среднее в день, кВт·ч</div></div>
+                <div class="stat-card"><div class="stat-value">${monthlyKwh.toFixed(0)}</div><div class="stat-label">Прогноз на месяц, кВт·ч</div></div>
+                <div class="stat-card"><div class="stat-value">${monthlyCost.toFixed(0)} ₽</div><div class="stat-label">Расход в месяц</div></div>
+                <div class="stat-card"><div class="stat-value">${potentialSavings.toFixed(0)} ₽</div><div class="stat-label">Экономия при оптимизации</div></div>
             `;
+            
+            // Сохраняем для использования в других функциях
+            window.currentMonthlyKwh = monthlyKwh;
+            window.currentMonthlyCost = monthlyCost;
         }
         
-        // Расчет часов пик
         function calculatePeakHours() {
+            if (!allData.length) return;
+            
             const hourlyMap = {};
             for (let i = 0; i < 24; i++) hourlyMap[i] = { sum: 0, count: 0 };
             
             for (const record of allData) {
-                const hour = new Date(record.Datetime).getHours();
+                let hour = 12;
+                if (record.Datetime) {
+                    hour = new Date(record.Datetime).getHours();
+                } else if (record.datetime) {
+                    hour = new Date(record.datetime).getHours();
+                }
                 const energy = record['Energy Consumption (kWh)'] || 0;
                 hourlyMap[hour].sum += energy;
                 hourlyMap[hour].count++;
@@ -237,55 +280,48 @@
                 values.push(hourlyMap[i].count > 0 ? hourlyMap[i].sum / hourlyMap[i].count : 0);
             }
             
-            // Находим пиковые часы
             const maxValue = Math.max(...values);
             const peakHour = values.indexOf(maxValue);
             
-            // Рисуем график
             const trace = {
                 x: hours,
                 y: values,
                 type: 'bar',
                 name: 'Среднее потребление',
                 marker: {
-                    color: values.map(v => v === maxValue ? '#f44336' : '#667eea'),
-                    showscale: false
+                    color: values.map(v => v === maxValue ? '#f44336' : '#667eea')
                 }
             };
             
             const layout = {
                 title: '',
-                xaxis: { title: 'Час дня' },
-                yaxis: { title: 'Среднее потребление (кВт·ч)' },
-                bargap: 0.1
+                xaxis: { title: 'Час дня', tickangle: -45 },
+                yaxis: { title: 'Среднее потребление (кВт·ч)' }
             };
             
             Plotly.newPlot('peak-hours-chart', [trace], layout, { responsive: true });
             
-            // Совет по пиковым часам
             document.getElementById('peak-advice').innerHTML = `
-                <div class="insight-icon">⚡</div>
+                <div class="insight-icon"></div>
                 <div class="insight-text">
                     <div class="insight-title">Ваш пик энергопотребления приходится на ${peakHour}:00</div>
                     <div>В это время нагрузка достигает ${maxValue.toFixed(2)} кВт·ч. 
-                    <strong>Рекомендация:</strong> Перенесите работу энергоемких приборов (стирка, сушка, посудомойка) на время после 22:00, 
-                    когда тариф на электроэнергию ниже на 30-50%.</div>
+                    <strong>Рекомендация:</strong> Перенесите работу энергоемких приборов (стирка, сушка, посудомойка) на время после 22:00.</div>
                 </div>
             `;
         }
         
-        // Расчет статистики по приборам
         async function calculateDeviceStats() {
-            // Получаем данные амортизации для информации о приборах
-            const amortResponse = await fetch('/api/amortization');
-            const amortData = await amortResponse.json();
+            if (!allData.length) {
+                document.getElementById('devices-tbody').innerHTML = ':<tr><td colspan="5">Нет данных для анализа</td></tr>';
+                return;
+            }
             
             const devices = ['Television', 'Dryer', 'Oven', 'Refrigerator', 'Microwave'];
             const deviceKeys = ['television', 'dryer', 'oven', 'refrigerator', 'microwave'];
             
             let totalEnergy = 0;
             const deviceEnergy = {};
-            
             for (const device of devices) {
                 deviceEnergy[device] = { sum: 0, count: 0 };
             }
@@ -297,7 +333,12 @@
                 for (let i = 0; i < devices.length; i++) {
                     const device = devices[i];
                     const key = deviceKeys[i];
-                    if (record[key] === 1) {
+                    let isActive = false;
+                    
+                    if (record[key] !== undefined) isActive = record[key] === 1;
+                    else if (record[device] !== undefined) isActive = record[device] === 1;
+                    
+                    if (isActive) {
                         deviceEnergy[device].sum += energy;
                         deviceEnergy[device].count++;
                     }
@@ -315,7 +356,6 @@
                 let potential = '';
                 let recommendation = '';
                 
-                // Определяем потенциал экономии
                 if (device === 'Dryer' && percentage > 15) {
                     potential = 'Высокий';
                     recommendation = 'Используйте таймер отсрочки, включайте ночью';
@@ -333,15 +373,14 @@
                     recommendation = 'Уже эффективно, продолжайте в том же духе';
                 }
                 
-                const amortScore = amortData.devices?.[device]?.score || 0;
-                const intensityClass = getIntensityClass(avgPower);
+                const intensityClass = potential === 'Высокий' ? 'badge-high' : (potential === 'Средний' ? 'badge-medium' : 'badge-low');
                 
                 html += `
                     <tr>
                         <td><strong>${device}</strong></td>
                         <td>${avgPower.toFixed(2)} кВт·ч</td>
                         <td>${percentage.toFixed(1)}%</td>
-                        <td><span class="badge ${potential === 'Высокий' ? 'badge-high' : (potential === 'Средний' ? 'badge-medium' : 'badge-low')}">${potential}</span></td>
+                        <td><span class="badge ${intensityClass}">${potential}</span></td>
                         <td>${recommendation}</td>
                     </tr>
                 `;
@@ -350,32 +389,32 @@
             tbody.innerHTML = html;
         }
         
-        // Расчет оптимального профиля
         function calculateOptimalProfile() {
-            // Идеальный профиль потребления (сдвиг пиковых нагрузок на ночь)
             optimalProfile = [];
             for (let hour = 0; hour < 24; hour++) {
                 if (hour >= 23 || hour <= 5) {
-                    // Ночное время - можно использовать энергоемкие приборы
                     optimalProfile.push(2.5);
                 } else if (hour >= 18 && hour <= 22) {
-                    // Вечерний пик - минимизируем
                     optimalProfile.push(1.5);
                 } else {
-                    // Дневное время - умеренное потребление
                     optimalProfile.push(2.0);
                 }
             }
         }
         
-        // Отрисовка графика сравнения
-        async function renderComparisonChart() {
-            // Получаем реальный профиль
+        function renderComparisonChart() {
+            if (!allData.length) return;
+            
             const hourlyMap = {};
             for (let i = 0; i < 24; i++) hourlyMap[i] = { sum: 0, count: 0 };
             
             for (const record of allData) {
-                const hour = new Date(record.Datetime).getHours();
+                let hour = 12;
+                if (record.Datetime) {
+                    hour = new Date(record.Datetime).getHours();
+                } else if (record.datetime) {
+                    hour = new Date(record.datetime).getHours();
+                }
                 const energy = record['Energy Consumption (kWh)'] || 0;
                 hourlyMap[hour].sum += energy;
                 hourlyMap[hour].count++;
@@ -388,10 +427,7 @@
                 actualProfile.push(hourlyMap[i].count > 0 ? hourlyMap[i].sum / hourlyMap[i].count : 0);
             }
             
-            // Расчет потенциальной экономии
-            let actualTotal = actualProfile.reduce((a,b) => a+b, 0);
-            let optimalTotal = optimalProfile.reduce((a,b) => a+b, 0);
-            let savingsPercent = ((actualTotal - optimalTotal) / actualTotal * 100).toFixed(0);
+            if (!optimalProfile) calculateOptimalProfile();
             
             const trace1 = {
                 x: hours,
@@ -414,106 +450,55 @@
             
             const layout = {
                 title: '',
-                xaxis: { title: 'Час дня' },
-                yaxis: { title: 'Энергопотребление (кВт·ч)' },
-                hovermode: 'closest'
+                xaxis: { title: 'Час дня', tickangle: -45 },
+                yaxis: { title: 'Энергопотребление (кВт·ч)' }
             };
             
             Plotly.newPlot('comparison-chart', [trace1, trace2], layout, { responsive: true });
             
-            // Вывод совета по сравнению
+            const actualTotal = actualProfile.reduce((a,b) => a+b, 0);
+            const optimalTotal = optimalProfile.reduce((a,b) => a+b, 0);
+            const savingsPercent = ((actualTotal - optimalTotal) / actualTotal * 100).toFixed(0);
+            
             let advice = '';
             if (savingsPercent > 20) {
-                advice = `⚠️ Вы потребляете на ${savingsPercent}% больше оптимального уровня. Основные потери приходятся на вечерние часы (18:00-22:00). 
-                <strong>Рекомендация:</strong> Используйте отложенный старт для стиральной и посудомоечной машин, устанавливайте таймеры на ночное время. 
-                Потенциальная экономия: до ${(actualTotal * 0.2 * 5).toFixed(0)} рублей в день при двухтарифном счетчике.`;
+                advice = ` Вы потребляете на ${savingsPercent}% больше оптимального уровня. Основные потери приходятся на вечерние часы (18:00-22:00).`;
             } else if (savingsPercent > 10) {
-                advice = `📊 Ваш профиль близок к оптимальному, отклонение составляет ${savingsPercent}%. 
-                <strong>Совет:</strong> Обратите внимание на использование телевизора и компьютеров в вечернее время - их выключение принесет дополнительную экономию.`;
+                advice = ` Ваш профиль близок к оптимальному, отклонение составляет ${savingsPercent}%.`;
             } else {
-                advice = `✅ Отличный результат! Ваш профиль энергопотребления близок к оптимальному. 
-                <strong>Совет:</strong> Продолжайте в том же духе, но регулярно проверяйте состояние холодильника и других постоянно работающих приборов.`;
+                advice = ` Отличный результат! Ваш профиль энергопотребления близок к оптимальному.`;
             }
             
             document.getElementById('comparison-insight').innerHTML = `
-                <div class="insight-icon">📊</div>
+                <div class="insight-icon"></div>
                 <div class="insight-text">${advice}</div>
             `;
         }
         
-        // Генерация персональных советов
         async function generateInsights() {
-            const insightsContainer = document.getElementById('insights-container');
+            if (!allData.length) return;
             
-            // Собираем данные для советов
             const energies = allData.map(d => d['Energy Consumption (kWh)'] || 0);
-            const avgEnergy = energies.reduce((a,b) => a+b, 0) / energies.length;
+            const avgPerRecord = energies.reduce((a,b) => a+b, 0) / energies.length;
             const maxEnergy = Math.max(...energies);
-            const minEnergy = Math.min(...energies);
             
-            // Находим максимальную амортизацию
-            const amortResponse = await fetch('/api/amortization');
-            const amortData = await amortResponse.json();
+            // ИСПОЛЬЗУЕМ ТУ ЖЕ ФОРМУЛУ, ЧТО И В calculateStats()
+            const avgDaily = avgPerRecord * RECORDS_PER_DAY;
+            const monthlyKwh = avgDaily * 30;
+            const monthlyCost = monthlyKwh * currentTariff;
+            const potentialMonthly = monthlyCost * 0.15;
             
-            let maxAmortDevice = '';
-            let maxAmortScore = 0;
-            if (amortData.devices) {
-                for (const [device, data] of Object.entries(amortData.devices)) {
-                    if (data.score > maxAmortScore) {
-                        maxAmortScore = data.score;
-                        maxAmortDevice = device;
-                    }
-                }
-            }
-            
-            // Генерируем советы
-            let insights = '';
-            
-            // Совет 1: Пиковые нагрузки
-            insights += `
-                <div class="insight-card">
-                    <div class="insight-icon">⚡</div>
-                    <div class="insight-text">
-                        <div class="insight-title">Снижение пиковых нагрузок</div>
-                        Ваше максимальное потребление достигает ${maxEnergy.toFixed(2)} кВт·ч. 
-                        Для снижения рекомендуется использовать энергоемкие приборы (стиральная машина, посудомойка) 
-                        в ночное время (22:00 - 06:00). Это также позволит сэкономить до 40% на электроэнергии при двухтарифном счетчике.
-                    </div>
-                </div>
-            `;
-            
-            // Совет 2: Амортизация оборудования
-            if (maxAmortDevice && maxAmortScore > 60) {
-                insights += `
-                    <div class="insight-card warning">
-                        <div class="insight-icon">🔧</div>
-                        <div class="insight-text">
-                            <div class="insight-title">Внимание: износ оборудования</div>
-                            Прибор "${maxAmortDevice}" имеет высокий уровень износа (${maxAmortScore}%). 
-                            Рекомендуется провести диагностику или плановое обслуживание. Своевременная замена изношенных деталей 
-                            может снизить энергопотребление на 15-25%.
-                        </div>
-                    </div>
-                `;
-            } else {
-                insights += `
-                    <div class="insight-card">
-                        <div class="insight-icon">✅</div>
-                        <div class="insight-text">
-                            <div class="insight-title">Состояние оборудования</div>
-                            Все приборы находятся в хорошем состоянии. Для поддержания эффективности рекомендуется 
-                            регулярно очищать фильтры (сушилка, вытяжка) и проверять уплотнители (холодильник).
-                        </div>
-                    </div>
-                `;
-            }
-            
-            // Совет 3: Ночное потребление
+            // Ночное потребление
             const nightHours = [0,1,2,3,4,5];
             let nightAvg = 0;
             let nightCount = 0;
             for (const record of allData) {
-                const hour = new Date(record.Datetime).getHours();
+                let hour = 12;
+                if (record.Datetime) {
+                    hour = new Date(record.Datetime).getHours();
+                } else if (record.datetime) {
+                    hour = new Date(record.datetime).getHours();
+                }
                 if (nightHours.includes(hour)) {
                     nightAvg += record['Energy Consumption (kWh)'] || 0;
                     nightCount++;
@@ -521,58 +506,46 @@
             }
             nightAvg = nightCount > 0 ? nightAvg / nightCount : 0;
             
+            let insights = `
+                <div class="insight-card">
+                    <div class="insight-icon"></div>
+                    <div class="insight-text">
+                        <div class="insight-title">Снижение пиковых нагрузок</div>
+                        Ваше максимальное потребление достигает ${maxEnergy.toFixed(2)} кВт·ч. 
+                        Для снижения рекомендуется использовать энергоемкие приборы в ночное время (22:00 - 06:00).
+                    </div>
+                </div>
+            `;
+            
             if (nightAvg > 0.8) {
                 insights += `
                     <div class="insight-card warning">
-                        <div class="insight-icon">🌙</div>
+                        <div class="insight-icon"></div>
                         <div class="insight-text">
                             <div class="insight-title">Ночное потребление выше нормы</div>
                             В ночное время (00:00-06:00) ваше среднее потребление составляет ${nightAvg.toFixed(2)} кВт·ч. 
-                            Рекомендуется проверить, какие приборы остаются включенными (обогреватели, зарядные устройства, 
-                            дополнительное освещение). Отключение неиспользуемых приборов может сэкономить до ${(nightAvg * 6 * 30 * 2).toFixed(0)} рублей в месяц.
-                        </div>
-                    </div>
-                `;
-            } else {
-                insights += `
-                    <div class="insight-card">
-                        <div class="insight-icon">✅</div>
-                        <div class="insight-text">
-                            <div class="insight-title">Ночное потребление в норме</div>
-                            Ваше ночное потребление составляет ${nightAvg.toFixed(2)} кВт·ч, что соответствует норме. 
-                            Вы эффективно используете ночной тариф.
+                            Проверьте, какие приборы остаются включенными.
                         </div>
                     </div>
                 `;
             }
             
-            // Совет 4: Общий итог
-            const monthlyCost = (avgEnergy * 24 * 30 * 5).toFixed(0);
-            const potentialMonthly = (avgEnergy * 24 * 30 * 5 * 0.15).toFixed(0);
-            
             insights += `
                 <div class="insight-card">
-                    <div class="insight-icon">💰</div>
+                    <div class="insight-icon"></div>
                     <div class="insight-text">
                         <div class="insight-title">Финансовый потенциал экономии</div>
-                        Ваши текущие расходы на электроэнергию составляют около ${monthlyCost} рублей в месяц. 
-                        При оптимизации согласно рекомендациям вы можете сэкономить до ${potentialMonthly} рублей в месяц 
-                        (около ${(potentialMonthly * 12).toFixed(0)} рублей в год).
+                        Ваши текущие расходы на электроэнергию составляют около ${monthlyCost.toFixed(0)} рублей в месяц. 
+                        При оптимизации согласно рекомендациям вы можете сэкономить до ${potentialMonthly.toFixed(0)} рублей в месяц.
                     </div>
                 </div>
             `;
             
-            insightsContainer.innerHTML = insights;
-        }
-        
-        // Запуск всех аналитических функций
-        async function runAnalysis() {
-            await loadData();
-            await generateInsights();
+            document.getElementById('insights-container').innerHTML = insights;
         }
         
         // Запуск
-        runAnalysis();
+        loadData();
     </script>
 </body>
 </html>
