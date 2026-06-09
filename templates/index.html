@@ -16,8 +16,7 @@
             padding: 20px;
         }
         .container { max-width: 1400px; margin: 0 auto; }
-        
-        /* Modern Navigation */
+
         .navbar {
             background: rgba(255,255,255,0.1);
             backdrop-filter: blur(10px);
@@ -108,7 +107,6 @@
             font-family: monospace;
         }
         
-        /* Header Card */
         .header-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 28px;
@@ -130,8 +128,7 @@
         }
         .header-card h1 { font-size: 28px; margin-bottom: 8px; font-weight: 600; }
         .header-card p { opacity: 0.85; font-size: 14px; }
-        
-        /* Stats Grid */
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -150,8 +147,7 @@
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
         .stat-value { font-size: 32px; font-weight: 700; color: #667eea; }
         .stat-label { color: #666; font-size: 13px; margin-top: 8px; font-weight: 500; }
-        
-        /* Main Grid */
+
         .main-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -177,8 +173,7 @@
             align-items: center;
             gap: 10px;
         }
-        
-        /* Amortization */
+
         .amortization-meter {
             text-align: center;
             padding: 20px;
@@ -207,8 +202,7 @@
         .score-good { background: #d1ecf1; color: #0c5460; }
         .score-warning { background: #fff3cd; color: #856404; }
         .score-critical { background: #f8d7da; color: #721c24; }
-        
-        /* Device Status */
+
         .device-status {
             display: flex;
             gap: 12px;
@@ -244,7 +238,7 @@
             width: 0%;
             border-radius: 3px;
         }
-        
+
         .last-record {
             margin-top: 15px;
             font-size: 12px;
@@ -254,9 +248,9 @@
             background: #f8f9fa;
             border-radius: 16px;
         }
-        
+
         .footer { text-align: center; padding: 25px; font-size: 12px; color: rgba(255,255,255,0.5); }
-        
+
         @media (max-width: 768px) {
             .main-grid { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
@@ -267,18 +261,17 @@
 </head>
 <body>
     <div class="container">
-        <!-- Modern Navigation Bar -->
         <nav class="navbar">
             <div class="logo">
-                <div class="logo-icon"></div>
+                <div class="logo-icon">🏠</div>
                 <div class="logo-text">
                     SmartHome<span>Energy Control</span>
                 </div>
             </div>
             <div class="nav-links">
-                <a href="/" class="nav-link active"> Главная</a>
-                <a href="/analytics" class="nav-link"> Аналитика</a>
-                <a href="/calculator" class="nav-link"> Калькулятор</a>
+                <a href="/" class="nav-link active">🏠 Главная</a>
+                <a href="/analytics" class="nav-link">📊 Аналитика</a>
+                <a href="/calculator" class="nav-link">🧮 Калькулятор</a>
             </div>
             <div class="status-badge">
                 <span class="live-dot"></span>
@@ -286,34 +279,31 @@
                 <span class="progress-badge" id="progress-info">--</span>
             </div>
         </nav>
-        
-        <!-- Header -->
+
         <div class="header-card">
             <h1>Система контроля энергопотребления</h1>
             <p>Мониторинг в реальном времени | Предиктивная амортизация | Интеллектуальный анализ</p>
         </div>
-        
-        <!-- Stats -->
+
         <div class="stats-grid" id="stats-container">
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Среднее потребление</div></div>
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Максимум</div></div>
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Минимум</div></div>
-            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Текущее напряжение</div></div>
+            <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Среднее напряжение</div></div>
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Всего показаний</div></div>
         </div>
-        
-        <!-- Main Content -->
+
         <div class="main-grid">
             <div class="card">
                 <div class="card-title">
-                    <span></span> Динамика энергопотребления
+                    <span>📊</span> Динамика энергопотребления
                 </div>
                 <div id="energy-chart" style="height: 350px;"></div>
                 <div class="progress-bar">
                     <div id="progress-fill" class="progress-fill"></div>
                 </div>
             </div>
-            
+
             <div class="card">
                 <div class="card-title">
                     <span>🔧</span> Предиктивная амортизация
@@ -330,67 +320,36 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Device Status -->
+
         <div class="card">
             <div class="card-title">
                 <span>📱</span> Текущее состояние приборов
             </div>
             <div id="device-status" class="device-status">
-                <span class="device-chip"> Ожидание данных...</span>
+                <span class="device-chip">⏳ Ожидание данных...</span>
             </div>
             <div id="last-record" class="last-record">Ожидание данных с датчиков...</div>
         </div>
-        
+
         <div class="footer">
-            <p>Система контроля энергопотребления с предиктивной амортизацией | Данные поступают в реальном времени</p>
+            <p>Система мониторинга энергопотребления | Данные обновляются в реальном времени</p>
         </div>
     </div>
-    
+
     <script>
-        let socket = io();
-        let chartData = [];
+        let socket = null;
         let chart = null;
-        
+        let chartData = [];
+        let lastUpdateTime = 0;
+        let forceUpdateInterval = null;
+
         function getScoreClass(score) {
-            if (score < 25) return 'score-excellent';
-            if (score < 45) return 'score-good';
-            if (score < 65) return 'score-warning';
-            return 'score-critical';
+            if (score < 40) return 'score-critical';
+            if (score < 70) return 'score-warning';
+            if (score < 85) return 'score-warning';
+            return 'score-excellent';
         }
-        
-        function updateChart() {
-            if (chartData.length === 0) return;
-            
-            const trace = {
-                x: chartData.map(d => d.time),
-                y: chartData.map(d => d.energy),
-                mode: 'lines+markers',
-                name: 'Энергопотребление',
-                line: { color: '#667eea', width: 2 },
-                marker: { size: 4, color: '#667eea' },
-                fill: 'tozeroy',
-                fillcolor: 'rgba(102, 126, 234, 0.1)'
-            };
-            
-            const layout = {
-                title: '',
-                xaxis: { title: 'Время', tickangle: -45, showgrid: true },
-                yaxis: { title: 'Энергопотребление (кВт·ч)', showgrid: true, range: [0, 8] },
-                hovermode: 'closest',
-                margin: { t: 20, l: 50, r: 30 },
-                plot_bgcolor: 'rgba(0,0,0,0)',
-                paper_bgcolor: 'rgba(0,0,0,0)'
-            };
-            
-            if (chart === null) {
-                Plotly.newPlot('energy-chart', [trace], layout, { responsive: true });
-                chart = true;
-            } else {
-                Plotly.react('energy-chart', [trace], layout);
-            }
-        }
-        
+
         function updateAmortization(amortization) {
             if (!amortization || !amortization.devices) return;
             
@@ -422,11 +381,11 @@
             if (!devices) return;
             const container = document.getElementById('device-status');
             const deviceNames = {
-                'television': ' Телевизор',
-                'dryer': ' Сушилка',
-                'oven': ' Духовка',
-                'refrigerator': ' Холодильник',
-                'microwave': ' Микроволновка'
+                'television': '📺 Телевизор',
+                'dryer': '👕 Сушилка',
+                'oven': '🍳 Духовка',
+                'refrigerator': '🧊 Холодильник',
+                'microwave': '⚡ Микроволновка'
             };
             let html = '';
             for (const [key, name] of Object.entries(deviceNames)) {
@@ -436,39 +395,85 @@
             container.innerHTML = html;
         }
         
+        function updateChart() {
+            if (chartData.length === 0) return;
+
+            const trace = {
+                x: chartData.map(d => d.datetime_short || d.datetime || ''),
+                y: chartData.map(d => d.energy || 0),
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Энергопотребление',
+                line: { color: '#667eea', width: 2 },
+                marker: { size: 4, color: '#667eea' },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(102, 126, 234, 0.1)'
+            };
+            
+            const layout = {
+                title: 'Энергопотребление (кВт·ч)',
+                xaxis: { title: 'Время', tickangle: -45, showgrid: true },
+                yaxis: { title: 'Энергопотребление (кВт·ч)', showgrid: true, range: [0, 8] },
+                hovermode: 'closest',
+                margin: { t: 20, l: 50, r: 30 },
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(0,0,0,0)'
+            };
+
+            if (chart === null) {
+                chart = Plotly.newPlot('energy-chart', [trace], layout);
+            } else {
+                Plotly.react('energy-chart', [trace], layout);
+            }
+        }
+
+        socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000
+        });
+
         socket.on('connect', () => {
             console.log('WebSocket подключен');
             document.getElementById('status-text').innerHTML = 'Активен';
         });
-        
+
         socket.on('new_data', (data) => {
-            chartData.push({ time: data.datetime_short, energy: data.energy });
-            if (chartData.length > 200) chartData.shift();
+            lastUpdateTime = Date.now();
+            chartData.push(data);
+            if (chartData.length > 500) chartData.shift();
             updateChart();
-            
+
             document.getElementById('progress-fill').style.width = (data.progress || 0) + '%';
             document.getElementById('progress-info').innerHTML = `${data.current || 0}/${data.total || 0}`;
             document.getElementById('status-text').innerHTML = 'Данные поступают';
-            
+
             if (data.amortization) updateAmortization(data.amortization);
             if (data.devices) updateDeviceStatus(data.devices);
-            
+
             const lastRecordDiv = document.getElementById('last-record');
             if (lastRecordDiv) {
-                lastRecordDiv.innerHTML = ` Последнее обновление: ${data.datetime || '--'} | ⚡ Энергия: ${(data.energy || 0).toFixed(2)} кВт·ч | 🔌 Напряжение: ${data.voltage || 0} В`;
+                lastRecordDiv.innerHTML = `🕐 Последнее обновление: ${data.datetime || '--'} | ⚡ Энергия: ${(data.energy || 0).toFixed(2)} кВт·ч | 🔌 Напряжение: ${data.voltage || 0} В`;
             }
         });
-        
+
         socket.on('stream_finished', () => {
             document.getElementById('status-text').innerHTML = 'Завершено';
         });
-        
+
+        socket.on('disconnect', () => {
+            console.log('WebSocket отключен');
+            document.getElementById('status-text').innerHTML = 'Переподключение...';
+        });
+
         async function loadInitialData() {
             try {
-                const statsResp = await fetch('/api/statistics');
-                const stats = await statsResp.json();
-                if (stats) {
-                    document.getElementById('stats-container').innerHTML = `
+                const response = await fetch('/api/statistics');
+                const stats = await response.json();
+                const statsContainer = document.getElementById('stats-container');
+                if (statsContainer && stats) {
+                    statsContainer.innerHTML = `
                         <div class="stat-card"><div class="stat-value">${stats.avg_energy || 0} кВт·ч</div><div class="stat-label">Среднее потребление</div></div>
                         <div class="stat-card"><div class="stat-value">${stats.max_energy || 0} кВт·ч</div><div class="stat-label">Максимум</div></div>
                         <div class="stat-card"><div class="stat-value">${stats.min_energy || 0} кВт·ч</div><div class="stat-label">Минимум</div></div>
@@ -476,69 +481,148 @@
                         <div class="stat-card"><div class="stat-value">${stats.total_records || 0}</div><div class="stat-label">Всего показаний</div></div>
                     `;
                 }
-                
-                const dataResp = await fetch('/api/data');
-                const initialData = await dataResp.json();
-                if (initialData && initialData.length > 0) {
-                    chartData = initialData.slice(0, 100).map(d => ({
-                        time: d.Datetime ? d.Datetime.substring(5, 16) : '',
-                        energy: d['Energy Consumption (kWh)'] || 0
-                    }));
-                    updateChart();
-                }
-            } catch(e) { console.error('Ошибка загрузки:', e); }
+            } catch(e) {
+                console.error('Ошибка загрузки статистики:', e);
+            }
         }
-        
+
+        async function loadAmortizationHTTP() {
+            try {
+                const response = await fetch('/api/devices');
+                const data = await response.json();
+                
+                const overallEl = document.getElementById('overall-score');
+                const overallStatus = document.getElementById('overall-status');
+                if (overallEl && data.overall !== undefined) {
+                    overallEl.innerHTML = data.overall + '%';
+                }
+                if (overallStatus && data.status) {
+                    overallStatus.innerHTML = data.status.icon + ' ' + data.status.text;
+                }
+                
+                const deviceList = document.getElementById('device-list');
+                if (deviceList && data.devices) {
+                    let html = '';
+                    for (const [deviceName, deviceInfo] of Object.entries(data.devices)) {
+                        let scoreClass = 'score-good';
+                        if (deviceInfo.score < 40) scoreClass = 'score-critical';
+                        else if (deviceInfo.score < 70) scoreClass = 'score-warning';
+                        else if (deviceInfo.score < 85) scoreClass = 'score-warning';
+                        else scoreClass = 'score-excellent';
+                        
+                        html += `
+                            <div class="device-item">
+                                <span class="device-name">${deviceName}</span>
+                                <div>
+                                    <span class="device-score ${scoreClass}">${deviceInfo.score}%</span>
+                                    <span style="font-size: 11px; margin-left: 8px; color: #888;">исп. ${deviceInfo.usage}%</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    deviceList.innerHTML = html || '<div style="text-align: center; padding: 20px;">Данные загружены</div>';
+                }
+            } catch(e) {
+                console.error('Ошибка загрузки амортизации:', e);
+            }
+        }
+
+        setInterval(function() {
+            if (chartData.length > 0) {
+                updateChart();
+                const lastRecord = chartData[chartData.length - 1];
+                if (lastRecord) {
+                    const lastRecordDiv = document.getElementById('last-record');
+                    if (lastRecordDiv && lastRecord.datetime) {
+                        lastRecordDiv.innerHTML = `🕐 Последнее обновление: ${lastRecord.datetime} | ⚡ Энергия: ${(lastRecord.energy || 0).toFixed(2)} кВт·ч | 🔌 Напряжение: ${lastRecord.voltage || 0} В`;
+                    }
+                }
+            }
+        }, 3000);
+
+        setInterval(loadAmortizationHTTP, 5000);
+        setInterval(loadInitialData, 10000);
+
         loadInitialData();
+        loadAmortizationHTTP();
+
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && chartData.length > 0) {
+                updateChart();
+            }
+        });
     </script>
 <script>
-// Дополнительная загрузка данных через HTTP
-async function loadAmortizationHTTP() {
+
+if (typeof socket !== 'undefined') {
+    socket.on('new_data', function(data) {
+        if (data && data.devices) {
+            console.log('Состояние приборов получено:', data.devices);
+            
+            const deviceNames = {
+                'television': '📺 Телевизор',
+                'dryer': '👕 Сушилка',
+                'oven': '🍳 Духовка',
+                'refrigerator': '🧊 Холодильник',
+                'microwave': '⚡ Микроволновка'
+            };
+            
+            let html = '';
+            for (const [key, name] of Object.entries(deviceNames)) {
+                const isActive = data.devices[key] === 1;
+                html += `<span class="device-chip ${isActive ? 'active' : ''}">${name} ${isActive ? '● Вкл' : '○ Выкл'}</span>`;
+            }
+            
+            const statusContainer = document.getElementById('device-status');
+            if (statusContainer) {
+                statusContainer.innerHTML = html;
+            }
+            
+            const lastRecordDiv = document.getElementById('last-record');
+            if (lastRecordDiv && data.datetime) {
+                lastRecordDiv.innerHTML = `🕐 ${data.datetime} | ⚡ ${data.energy} кВт·ч | 🔌 ${data.voltage} В`;
+            }
+        }
+    });
+}
+
+
+async function loadDevicesStatus() {
     try {
         const response = await fetch('/api/devices');
         const data = await response.json();
         
-        // Обновляем амортизацию
-        const overallEl = document.getElementById('overall-score');
-        const overallStatus = document.getElementById('overall-status');
-        if (overallEl && data.overall !== undefined) {
-            overallEl.innerHTML = data.overall + '%';
-        }
-        if (overallStatus && data.status) {
-            overallStatus.innerHTML = data.status.icon + ' ' + data.status.text;
-        }
-        
-        // Обновляем список приборов
-        const deviceList = document.getElementById('device-list');
-        if (deviceList && data.devices) {
+        if (data && data.devices) {
+            const deviceNames = {
+                'Refrigerator': '🧊 Холодильник',
+                'Oven': '🍳 Духовка',
+                'Dryer': '👕 Сушилка',
+                'Television': '📺 Телевизор',
+                'Microwave': '⚡ Микроволновка'
+            };
+            
             let html = '';
-            for (const [deviceName, deviceInfo] of Object.entries(data.devices)) {
-                let scoreClass = 'score-good';
-                if (deviceInfo.score < 40) scoreClass = 'score-critical';
-                else if (deviceInfo.score < 70) scoreClass = 'score-warning';
-                else if (deviceInfo.score < 85) scoreClass = 'score-warning';
-                else scoreClass = 'score-excellent';
-                
-                html += `
-                    <div class="device-item">
-                        <span class="device-name">${deviceName}</span>
-                        <div>
-                            <span class="device-score ${scoreClass}">${deviceInfo.score}%</span>
-                            <span style="font-size: 11px; margin-left: 8px; color: #888;">исп. ${deviceInfo.usage}%</span>
-                        </div>
-                    </div>
-                `;
+            for (const [key, name] of Object.entries(deviceNames)) {
+                const deviceInfo = data.devices[key];
+                if (deviceInfo) {
+                    const isActive = deviceInfo.status === 'active';
+                    html += `<span class="device-chip ${isActive ? 'active' : ''}">${name} ${isActive ? '● Вкл' : '○ Выкл'}</span>`;
+                }
             }
-            deviceList.innerHTML = html || '<div style="text-align: center; padding: 20px;">Данные загружены</div>';
+            
+            const statusContainer = document.getElementById('device-status');
+            if (statusContainer && html) {
+                statusContainer.innerHTML = html;
+            }
         }
     } catch(e) {
-        console.error('Ошибка загрузки амортизации:', e);
+        console.error('Ошибка загрузки состояния приборов:', e);
     }
 }
 
-// Загружаем сразу и каждые 10 секунд
-loadAmortizationHTTP();
-setInterval(loadAmortizationHTTP, 10000);
+// Загружаем сразу и каждые 5 секунд
+loadDevicesStatus();
+setInterval(loadDevicesStatus, 5000);
 </script>
 </body>
 </html>

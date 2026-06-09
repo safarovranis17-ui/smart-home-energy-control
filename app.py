@@ -2,14 +2,13 @@ from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 import pandas as pd
-import numpy as np
-import time
 import threading
-from collections import deque
+import time
+import os
 from datetime import datetime
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret'
+app.config['SECRET_KEY'] = 'secret!'
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -18,190 +17,172 @@ current_index = 0
 is_streaming = False
 stream_thread = None
 
-# Данные для накопления статистики (скользящее окно)
-historical_window = deque(maxlen=2000)  # последние 2000 записей (~20 дней)
-last_amortization_update = 0
-amortization_cache = None
-
-# Веса важности приборов
-DEVICE_WEIGHTS = {
-    'Refrigerator': 0.35,   # Холодильник - самый важный
-    'Oven': 0.25,           # Духовка
-    'Dryer': 0.20,          # Сушилка
-    'Television': 0.15,     # Телевизор
-    'Microwave': 0.05       # Микроволновка
-}
-
 def load_csv_data():
     global csv_data
-    print("📂 Загрузка данных...")
+    print("="*50)
+    print("📂 ПОИСК CSV-ФАЙЛА")
+    print("="*50)
+    
+    possible_paths = [
+        'data/smart_home_dataset.csv',
+        './data/smart_home_dataset.csv',
+        '../data/smart_home_dataset.csv',
+        'smart_home_dataset.csv',
+        './smart_home_dataset.csv'
+    ]
+    
+    csv_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            csv_path = path
+            print(f"✅ Файл найден: {path}")
+            break
+    
+    if csv_path is None:
+        print("❌ CSV-ФАЙЛ НЕ НАЙДЕН!")
+        print("   Проверьте пути:")
+        for path in possible_paths:
+            print(f"     - {path}")
+        return False
+    
     try:
-        df = pd.read_csv('data/smart_home_dataset.csv')
+        df = pd.read_csv(csv_path)
         csv_data = df.to_dict('records')
         print(f"✅ Загружено {len(csv_data)} записей")
+        print(f"📊 Колонки: {list(df.columns)}")
+        
+        if len(csv_data) > 0:
+            first = csv_data[0]
+            print(f"📅 Первая запись: {first.get('Datetime', 'N/A')}")
+            print(f"⚡ Энергия: {first.get('Energy Consumption (kWh)', 'N/A')} кВт·ч")
+            print(f"🔌 Напряжение: {first.get('Voltage', 'N/A')} В")
+            print(f"📺 Телевизор: {first.get('Television', 'N/A')}")
+            print(f"👕 Сушилка: {first.get('Dryer', 'N/A')}")
+            print(f"🍳 Духовка: {first.get('Oven', 'N/A')}")
+            print(f"🧊 Холодильник: {first.get('Refrigerator', 'N/A')}")
+            print(f"⚡ Микроволновка: {first.get('Microwave', 'N/A')}")
+        
         return True
     except Exception as e:
-        print(f"❌ Ошибка: {e}")
+        print(f"❌ Ошибка чтения CSV: {e}")
         return False
 
-def calculate_stable_amortization():
-    """
-    Рассчитывает стабильную амортизацию на основе накопленной статистики.
-    Вызывается периодически, а не для каждой записи.
-    """
-    if len(historical_window) < 100:
+def calculate_amortization_from_csv(recent_records):
+    if len(recent_records) < 10:
         return None
     
-    df = pd.DataFrame(historical_window)
+    df = pd.DataFrame(recent_records)
     
-    # Берем последние 500 записей для стабильности
-    recent = df.tail(500)
+    devices = ['Refrigerator', 'Oven', 'Microwave', 'Television', 'Dryer']
+    devices_data = {}
+    all_scores = []
     
-    # 1. Среднее потребление за период
-    avg_energy = recent['energy'].mean()
-    max_energy = recent['energy'].max()
-    energy_factor = avg_energy / 8.0  # 8 кВт·ч - пиковая нагрузка
+    for device in devices:
+        if device in df.columns:
+            usage_count = (df[device] > 0).sum()
+            usage_pct = round((usage_count / len(df)) * 100, 1)
+            
+            if device == 'Refrigerator':
+                score = max(50, min(95, 95 - (usage_pct * 0.3)))
+            elif device == 'Dryer':
+                score = max(45, min(90, 90 - (usage_pct * 0.4)))
+            elif device == 'Oven':
+                score = max(50, min(92, 92 - (usage_pct * 0.35)))
+            else:
+                score = max(60, min(98, 98 - (usage_pct * 0.25)))
+            
+            score = round(score, 1)
+            all_scores.append(score)
+            
+            devices_data[device] = {
+                'score': score,
+                'usage': usage_pct
+            }
     
-    # 2. Частота использования каждого прибора (за весь период)
-    device_usage = {}
-    for device in DEVICE_WEIGHTS.keys():
-        device_col = device.lower()
-        if device_col in recent.columns:
-            usage_pct = recent[device_col].mean() * 100
-        else:
-            # Если колонки нет, пробуем с заглавной
-            usage_pct = recent[device].mean() * 100 if device in recent.columns else 0
-        device_usage[device] = usage_pct
+    if not all_scores:
+        return None
     
-    # 3. Тренд (растет или падает потребление)
-    if len(recent) >= 24:
-        recent_avg = recent['energy'].tail(24).mean()
-        older_avg = recent['energy'].head(24).mean()
-        trend_factor = max(0.5, min(1.5, recent_avg / older_avg if older_avg > 0 else 1))
+    overall = round(sum(all_scores) / len(all_scores), 1)
+    
+    if overall >= 80:
+        status_text = "Отличное"
+        status_color = "#4caf50"
+        status_icon = "✅"
+    elif overall >= 60:
+        status_text = "Хорошее"
+        status_color = "#ff9800"
+        status_icon = "⚠️"
     else:
-        trend_factor = 1
-    
-    # 4. Расчет амортизации для каждого прибора
-    amortization_results = {}
-    for device, weight in DEVICE_WEIGHTS.items():
-        usage = device_usage[device]
-        
-        # Базовая амортизация от частоты использования
-        usage_score = (usage / 100) * 50
-        
-        # Корректировка от нагрузки (чем выше нагрузка, тем быстрее износ)
-        load_score = energy_factor * 30
-        
-        # Долговременная составляющая (базовый износ)
-        base_score = weight * 20
-        
-        # Итоговая амортизация
-        score = usage_score + load_score + base_score
-        score = score * trend_factor
-        
-        # Ограничиваем и округляем
-        score = min(100, max(5, round(score, 1)))
-        
-        amortization_results[device] = {
-            'score': score,
-            'usage': round(usage, 1),
-            'weight': round(weight * 100),
-            'status': get_amortization_status(score)
-        }
-    
-    # Общая амортизация (взвешенная сумма)
-    overall = sum(amortization_results[d]['score'] * DEVICE_WEIGHTS[d] for d in DEVICE_WEIGHTS)
-    overall = min(100, max(5, round(overall, 1)))
+        status_text = "Требует внимания"
+        status_color = "#ffc107"
+        status_icon = "⚡"
     
     return {
-        'devices': amortization_results,
         'overall': overall,
-        'status': get_amortization_status(overall),
-        'avg_energy': round(avg_energy, 2),
-        'peak_energy': round(max_energy, 2),
-        'trend': round(trend_factor, 2)
+        'devices': devices_data,
+        'status': {
+            'text': status_text,
+            'color': status_color,
+            'icon': status_icon
+        }
     }
 
-def get_amortization_status(score):
-    if score < 25:
-        return {'text': 'Отличное', 'color': '#4caf50', 'icon': '✅', 'class': 'excellent'}
-    elif score < 45:
-        return {'text': 'Хорошее', 'color': '#8bc34a', 'icon': '🟢', 'class': 'good'}
-    elif score < 65:
-        return {'text': 'Удовлетворительное', 'color': '#ffc107', 'icon': '⚠️', 'class': 'warning'}
-    elif score < 85:
-        return {'text': 'Требует внимания', 'color': '#ff9800', 'icon': '🔴', 'class': 'attention'}
-    else:
-        return {'text': 'Критическое', 'color': '#f44336', 'icon': '‼️', 'class': 'critical'}
-
 def data_stream_loop():
-    """Фоновый поток для передачи данных с периодическим обновлением амортизации."""
-    global current_index, is_streaming, csv_data, historical_window, last_amortization_update, amortization_cache
+    global current_index, is_streaming, csv_data
     
-    print("📡 Поток данных запущен")
-    
-    # Сразу заполняем историческое окно первыми 500 записями
-    initial_count = min(500, len(csv_data))
-    for i in range(initial_count):
-        record = csv_data[i]
-        historical_window.append({
-            'timestamp': record.get('Unix Timestamp', 0),
-            'energy': record.get('Energy Consumption (kWh)', 0),
-            'voltage': record.get('Voltage', 0),
-            'television': record.get('Television', 0),
-            'dryer': record.get('Dryer', 0),
-            'oven': record.get('Oven', 0),
-            'refrigerator': record.get('Refrigerator', 0),
-            'microwave': record.get('Microwave', 0)
-        })
-    
-    # Первый расчет амортизации
-    amortization_cache = calculate_stable_amortization()
-    last_amortization_update = time.time()
+    print("▶️ ПОТОК ДАННЫХ ЗАПУЩЕН")
+    print(f"📊 Всего записей: {len(csv_data)}")
     
     while is_streaming and current_index < len(csv_data):
         record = csv_data[current_index]
         
-        # Добавляем запись в историческое окно
-        current_record = {
-            'timestamp': record.get('Unix Timestamp', 0),
-            'energy': record.get('Energy Consumption (kWh)', 0),
-            'voltage': record.get('Voltage', 0),
-            'television': record.get('Television', 0),
-            'dryer': record.get('Dryer', 0),
-            'oven': record.get('Oven', 0),
-            'refrigerator': record.get('Refrigerator', 0),
-            'microwave': record.get('Microwave', 0)
+        timestamp = record.get('Datetime', '')
+        if isinstance(timestamp, str) and '.' in timestamp:
+            timestamp = timestamp.split('.')[0]
+        
+        energy = record.get('Energy Consumption (kWh)', 0)
+        if isinstance(energy, str):
+            try:
+                energy = float(energy)
+            except:
+                energy = 0
+        energy = round(energy, 2)
+        
+        voltage = record.get('Voltage', 0)
+        if isinstance(voltage, str):
+            try:
+                voltage = float(voltage)
+            except:
+                voltage = 0
+        voltage = round(voltage, 1)
+        
+        devices_status = {
+            'television': 1 if record.get('Television', 0) > 0 else 0,
+            'dryer': 1 if record.get('Dryer', 0) > 0 else 0,
+            'oven': 1 if record.get('Oven', 0) > 0 else 0,
+            'refrigerator': 1 if record.get('Refrigerator', 0) > 0 else 0,
+            'microwave': 1 if record.get('Microwave', 0) > 0 else 0
         }
-        historical_window.append(current_record)
         
-        # Обновляем амортизацию раз в 30 секунд (а не для каждой записи)
-        current_time = time.time()
-        if current_time - last_amortization_update > 30 and len(historical_window) >= 100:
-            amortization_cache = calculate_stable_amortization()
-            last_amortization_update = current_time
+        window_size = 100
+        start_idx = max(0, current_index - window_size)
+        recent_records = csv_data[start_idx:current_index + 1]
+        amortization_data = calculate_amortization_from_csv(recent_records)
         
-        # Используем кешированную амортизацию
-        amortization_to_send = amortization_cache if amortization_cache else {
-            'devices': {}, 'overall': 0, 'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'},
-            'avg_energy': 0, 'peak_energy': 0
-        }
+        if amortization_data is None:
+            amortization_data = {
+                'overall': 50,
+                'devices': {},
+                'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'}
+            }
         
-        # Отправляем данные клиенту
         data_to_emit = {
-            'datetime': record.get('Datetime', ''),
-            'datetime_short': record.get('Datetime', '')[5:16] if record.get('Datetime') else '',
-            'energy': round(record.get('Energy Consumption (kWh)', 0), 2),
-            'voltage': round(record.get('Voltage', 0), 1),
-            'apparent_power': round(record.get('Apparent Power', 0), 1),
-            'devices': {
-                'television': record.get('Television', 0),
-                'dryer': record.get('Dryer', 0),
-                'oven': record.get('Oven', 0),
-                'refrigerator': record.get('Refrigerator', 0),
-                'microwave': record.get('Microwave', 0)
-            },
-            'amortization': amortization_to_send,
+            'datetime': timestamp,
+            'datetime_short': timestamp[-8:] if timestamp else '',
+            'energy': energy,
+            'voltage': voltage,
+            'devices': devices_status,
+            'amortization': amortization_data,
             'progress': round((current_index + 1) / len(csv_data) * 100, 1),
             'current': current_index + 1,
             'total': len(csv_data)
@@ -211,22 +192,20 @@ def data_stream_loop():
         
         current_index += 1
         
-        # Задержка между записями
-        if current_index < len(csv_data):
-            time_diff = csv_data[current_index]['Unix Timestamp'] - record['Unix Timestamp']
-            delay = max(0.1, min(time_diff, 2.0))
-            time.sleep(delay)
+        if current_index % 100 == 0:
+            print(f"📤 Прогресс: {current_index}/{len(csv_data)} ({data_to_emit['progress']}%)")
+        
+        time.sleep(0.05)
     
-    print("✅ Поток данных завершен")
-    socketio.emit('stream_finished', {'message': 'Все данные переданы'})
     is_streaming = False
+    print("✅ ПОТОК ДАННЫХ ЗАВЕРШЁН")
+    socketio.emit('stream_finished', {'message': 'Все данные загружены'})
 
 def start_data_stream():
     global is_streaming, stream_thread, current_index
     if is_streaming:
         return
-    if current_index >= len(csv_data):
-        current_index = 0
+    current_index = 0
     is_streaming = True
     stream_thread = threading.Thread(target=data_stream_loop)
     stream_thread.daemon = True
@@ -236,6 +215,14 @@ def start_data_stream():
 def index():
     return render_template('index.html')
 
+@app.route('/analytics')
+def analytics():
+    return render_template('analytics.html')
+
+@app.route('/calculator')
+def calculator():
+    return render_template('calculator.html')
+
 @app.route('/api/status')
 def get_status():
     total = len(csv_data)
@@ -243,23 +230,41 @@ def get_status():
     return jsonify({
         'is_streaming': is_streaming,
         'progress': progress,
-        'total': total,
-        'current': current_index
+        'current': current_index,
+        'total': total
     })
 
 @app.route('/api/data')
 def get_initial_data():
     if not csv_data:
         return jsonify([])
-    return jsonify(csv_data[:100])
+    return jsonify(csv_data[:500])
 
 @app.route('/api/statistics')
 def get_statistics():
     if not csv_data:
         return jsonify({'avg_energy': 0, 'max_energy': 0, 'min_energy': 0, 'avg_voltage': 230, 'total_records': 0})
     
-    energies = [d.get('Energy Consumption (kWh)', 0) for d in csv_data]
-    voltages = [d.get('Voltage', 0) for d in csv_data if d.get('Voltage', 0) > 0]
+    energies = []
+    for d in csv_data:
+        e = d.get('Energy Consumption (kWh)', 0)
+        if isinstance(e, str):
+            try:
+                e = float(e)
+            except:
+                e = 0
+        energies.append(e)
+    
+    voltages = []
+    for d in csv_data:
+        v = d.get('Voltage', 0)
+        if isinstance(v, str):
+            try:
+                v = float(v)
+            except:
+                v = 0
+        if v > 0:
+            voltages.append(v)
     
     return jsonify({
         'avg_energy': round(sum(energies) / len(energies), 2),
@@ -269,33 +274,43 @@ def get_statistics():
         'total_records': len(csv_data)
     })
 
+@app.route('/api/devices')
+def api_devices():
+    if not csv_data or len(csv_data) < 10:
+        return jsonify({'devices': {}, 'overall': 0, 'status': {'text': 'Недостаточно данных', 'color': '#999', 'icon': '⏳'}})
+    
+    recent = csv_data[-100:]
+    amortization = calculate_amortization_from_csv(recent)
+    
+    if amortization:
+        return jsonify({
+            'devices': amortization['devices'],
+            'overall': amortization['overall'],
+            'status': amortization['status'],
+            'timestamp': datetime.now().isoformat()
+        })
+    else:
+        return jsonify({'devices': {}, 'overall': 0, 'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'}})
+
 @socketio.on('connect')
 def handle_connect():
     print("🔌 Клиент подключен")
     if csv_data and not is_streaming:
         start_data_stream()
 
-@app.route('/analytics')
-def analytics():
-    """Страница аналитики и советов по экономии"""
-    return render_template('analytics.html')
-    
-@app.route('/calculator')
-def calculator():
-    """Калькулятор сценариев Что, если?"""
-    return render_template('calculator.html')
-
 if __name__ == '__main__':
     print("="*50)
-    print("СИСТЕМА КОНТРОЛЯ ЭНЕРГОПОТРЕБЛЕНИЯ")
-    print("Умный дом с предиктивной амортизацией")
+    print("🚀 ЗАПУСК СЕРВЕРА")
     print("="*50)
     
     if load_csv_data():
-        print(f"\n Сервер запущен: http://localhost:5000")
-        print(" Предиктивная амортизация рассчитывается раз в 30 секунд")
+        print("\n" + "="*50)
+        print("🌐 СЕРВЕР ЗАПУЩЕН")
+        print("   http://localhost:5000")
+        print("="*50)
     else:
-        print("\n Ошибка загрузки данных")
+        print("\n❌ НЕ УДАЛОСЬ ЗАГРУЗИТЬ CSV")
+        print("   Создайте папку 'data' и положите туда smart_home_dataset.csv")
         exit(1)
-
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
