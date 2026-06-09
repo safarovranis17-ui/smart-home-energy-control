@@ -491,5 +491,54 @@
         
         loadInitialData();
     </script>
+<script>
+// Дополнительная загрузка данных через HTTP
+async function loadAmortizationHTTP() {
+    try {
+        const response = await fetch('/api/devices');
+        const data = await response.json();
+        
+        // Обновляем амортизацию
+        const overallEl = document.getElementById('overall-score');
+        const overallStatus = document.getElementById('overall-status');
+        if (overallEl && data.overall !== undefined) {
+            overallEl.innerHTML = data.overall + '%';
+        }
+        if (overallStatus && data.status) {
+            overallStatus.innerHTML = data.status.icon + ' ' + data.status.text;
+        }
+        
+        // Обновляем список приборов
+        const deviceList = document.getElementById('device-list');
+        if (deviceList && data.devices) {
+            let html = '';
+            for (const [deviceName, deviceInfo] of Object.entries(data.devices)) {
+                let scoreClass = 'score-good';
+                if (deviceInfo.score < 40) scoreClass = 'score-critical';
+                else if (deviceInfo.score < 70) scoreClass = 'score-warning';
+                else if (deviceInfo.score < 85) scoreClass = 'score-warning';
+                else scoreClass = 'score-excellent';
+                
+                html += `
+                    <div class="device-item">
+                        <span class="device-name">${deviceName}</span>
+                        <div>
+                            <span class="device-score ${scoreClass}">${deviceInfo.score}%</span>
+                            <span style="font-size: 11px; margin-left: 8px; color: #888;">исп. ${deviceInfo.usage}%</span>
+                        </div>
+                    </div>
+                `;
+            }
+            deviceList.innerHTML = html || '<div style="text-align: center; padding: 20px;">Данные загружены</div>';
+        }
+    } catch(e) {
+        console.error('Ошибка загрузки амортизации:', e);
+    }
+}
+
+// Загружаем сразу и каждые 10 секунд
+loadAmortizationHTTP();
+setInterval(loadAmortizationHTTP, 10000);
+</script>
 </body>
 </html>
