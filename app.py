@@ -40,28 +40,12 @@ def load_csv_data():
     
     if csv_path is None:
         print("❌ CSV-ФАЙЛ НЕ НАЙДЕН!")
-        print("   Проверьте пути:")
-        for path in possible_paths:
-            print(f"     - {path}")
         return False
     
     try:
         df = pd.read_csv(csv_path)
         csv_data = df.to_dict('records')
         print(f"✅ Загружено {len(csv_data)} записей")
-        print(f"📊 Колонки: {list(df.columns)}")
-        
-        if len(csv_data) > 0:
-            first = csv_data[0]
-            print(f"📅 Первая запись: {first.get('Datetime', 'N/A')}")
-            print(f"⚡ Энергия: {first.get('Energy Consumption (kWh)', 'N/A')} кВт·ч")
-            print(f"🔌 Напряжение: {first.get('Voltage', 'N/A')} В")
-            print(f"📺 Телевизор: {first.get('Television', 'N/A')}")
-            print(f"👕 Сушилка: {first.get('Dryer', 'N/A')}")
-            print(f"🍳 Духовка: {first.get('Oven', 'N/A')}")
-            print(f"🧊 Холодильник: {first.get('Refrigerator', 'N/A')}")
-            print(f"⚡ Микроволновка: {first.get('Microwave', 'N/A')}")
-        
         return True
     except Exception as e:
         print(f"❌ Ошибка чтения CSV: {e}")
@@ -112,10 +96,14 @@ def calculate_amortization_from_csv(recent_records):
         status_text = "Хорошее"
         status_color = "#ff9800"
         status_icon = "⚠️"
-    else:
+    elif overall >= 40:
         status_text = "Требует внимания"
         status_color = "#ffc107"
         status_icon = "⚡"
+    else:
+        status_text = "Критическое"
+        status_color = "#f44336"
+        status_icon = "🔴"
     
     return {
         'overall': overall,
@@ -126,90 +114,6 @@ def calculate_amortization_from_csv(recent_records):
             'icon': status_icon
         }
     }
-
-def data_stream_loop():
-    global current_index, is_streaming, csv_data
-    
-    print("▶️ ПОТОК ДАННЫХ ЗАПУЩЕН")
-    print(f"📊 Всего записей: {len(csv_data)}")
-    
-    while is_streaming and current_index < len(csv_data):
-        record = csv_data[current_index]
-        
-        timestamp = record.get('Datetime', '')
-        if isinstance(timestamp, str) and '.' in timestamp:
-            timestamp = timestamp.split('.')[0]
-        
-        energy = record.get('Energy Consumption (kWh)', 0)
-        if isinstance(energy, str):
-            try:
-                energy = float(energy)
-            except:
-                energy = 0
-        energy = round(energy, 2)
-        
-        voltage = record.get('Voltage', 0)
-        if isinstance(voltage, str):
-            try:
-                voltage = float(voltage)
-            except:
-                voltage = 0
-        voltage = round(voltage, 1)
-        
-        devices_status = {
-            'television': 1 if record.get('Television', 0) > 0 else 0,
-            'dryer': 1 if record.get('Dryer', 0) > 0 else 0,
-            'oven': 1 if record.get('Oven', 0) > 0 else 0,
-            'refrigerator': 1 if record.get('Refrigerator', 0) > 0 else 0,
-            'microwave': 1 if record.get('Microwave', 0) > 0 else 0
-        }
-        
-        window_size = 100
-        start_idx = max(0, current_index - window_size)
-        recent_records = csv_data[start_idx:current_index + 1]
-        amortization_data = calculate_amortization_from_csv(recent_records)
-        
-        if amortization_data is None:
-            amortization_data = {
-                'overall': 50,
-                'devices': {},
-                'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'}
-            }
-        
-        data_to_emit = {
-            'datetime': timestamp,
-            'datetime_short': timestamp[-8:] if timestamp else '',
-            'energy': energy,
-            'voltage': voltage,
-            'devices': devices_status,
-            'amortization': amortization_data,
-            'progress': round((current_index + 1) / len(csv_data) * 100, 1),
-            'current': current_index + 1,
-            'total': len(csv_data)
-        }
-        
-        socketio.emit('new_data', data_to_emit)
-        
-        current_index += 1
-        
-        if current_index % 100 == 0:
-            print(f"📤 Прогресс: {current_index}/{len(csv_data)} ({data_to_emit['progress']}%)")
-        
-        time.sleep(0.05)
-    
-    is_streaming = False
-    print("✅ ПОТОК ДАННЫХ ЗАВЕРШЁН")
-    socketio.emit('stream_finished', {'message': 'Все данные загружены'})
-
-def start_data_stream():
-    global is_streaming, stream_thread, current_index
-    if is_streaming:
-        return
-    current_index = 0
-    is_streaming = True
-    stream_thread = threading.Thread(target=data_stream_loop)
-    stream_thread.daemon = True
-    stream_thread.start()
 
 @app.route('/')
 def index():
@@ -295,8 +199,60 @@ def api_devices():
 @socketio.on('connect')
 def handle_connect():
     print("🔌 Клиент подключен")
-    if csv_data and not is_streaming:
-        start_data_stream()
+
+@socketio.on('request_single')
+def handle_request_single():
+    global current_index
+    
+    if not csv_data:
+        emit('error', {'message': 'Нет данных'})
+        return
+    
+    if current_index >= len(csv_data):
+        emit('stream_finished', {'message': 'Все данные загружены'})
+        return
+    
+    record = csv_data[current_index]
+    
+    devices_status = {
+        'television': 1 if record.get('Television', 0) > 0 else 0,
+        'dryer': 1 if record.get('Dryer', 0) > 0 else 0,
+        'oven': 1 if record.get('Oven', 0) > 0 else 0,
+        'refrigerator': 1 if record.get('Refrigerator', 0) > 0 else 0,
+        'microwave': 1 if record.get('Microwave', 0) > 0 else 0
+    }
+    
+    start_idx = max(0, current_index - 100)
+    recent = csv_data[start_idx:current_index + 1]
+    amortization = calculate_amortization_from_csv(recent)
+    
+    if amortization is None:
+        amortization = {
+            'overall': 50,
+            'devices': {},
+            'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'}
+        }
+    
+    data_to_emit = {
+        'datetime': record.get('Datetime', ''),
+        'datetime_short': record.get('Datetime', '')[-8:] if record.get('Datetime') else '',
+        'energy': round(record.get('Energy Consumption (kWh)', 0), 2),
+        'voltage': round(record.get('Voltage', 0), 1),
+        'devices': devices_status,
+        'amortization': amortization,
+        'progress': round((current_index + 1) / len(csv_data) * 100, 1),
+        'current': current_index + 1,
+        'total': len(csv_data)
+    }
+    
+    socketio.emit('new_data', data_to_emit)
+    current_index += 1
+
+@socketio.on('reset_stream')
+def reset_stream():
+    global current_index
+    current_index = 0
+    emit('stream_reset', {'message': 'Stream reset'})
 
 if __name__ == '__main__':
     print("="*50)
@@ -304,13 +260,11 @@ if __name__ == '__main__':
     print("="*50)
     
     if load_csv_data():
-        print("\n" + "="*50)
-        print("🌐 СЕРВЕР ЗАПУЩЕН")
+        print(f"\n🌐 СЕРВЕР ЗАПУЩЕН")
         print("   http://localhost:5000")
         print("="*50)
     else:
         print("\n❌ НЕ УДАЛОСЬ ЗАГРУЗИТЬ CSV")
-        print("   Создайте папку 'data' и положите туда smart_home_dataset.csv")
         exit(1)
     
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
