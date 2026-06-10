@@ -9,3 +9,4 @@ requests==2.31.0
 flask-socketio==5.3.4
 eventlet==0.33.3
 bcrypt==4.0.1
+psutil==5.9.5

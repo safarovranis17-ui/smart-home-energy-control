@@ -44,3 +44,8 @@ Thumbs.db
 
 # Uploads
 uploads/
+
+users.db
+__pycache__/
+*.pyc
+.dockerignore

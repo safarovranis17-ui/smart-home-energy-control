@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  smart-home:
+    build: .
+    container_name: smart-home-energy-control
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./users.db:/app/users.db
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
