@@ -6,6 +6,7 @@ import time
 import os
 import bcrypt
 import sqlite3
+import random
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -16,7 +17,15 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-# ========== РАБОТА С БАЗОЙ ДАННЫХ ПОЛЬЗОВАТЕЛЕЙ ==========
+csv_data = []
+current_index = 0
+DATA_INTERVAL = 1.0
+
+REAL_API_CONFIG = {
+    'enabled': False,
+    'url': 'http://localhost:5001/api/current',
+    'api_key': ''
+}
 
 def init_db():
     conn = sqlite3.connect('users.db')
@@ -55,17 +64,12 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ========== ЗАГРУЗКА CSV ДАННЫХ ==========
-
-csv_data = []
-DATA_INTERVAL = 1.0
-
 def load_csv_data():
     global csv_data
     print("="*50)
     print("📂 ПОИСК CSV-ФАЙЛА")
     print("="*50)
-
+    
     possible_paths = [
         'data/smart_home_dataset.csv',
         './data/smart_home_dataset.csv',
@@ -73,18 +77,18 @@ def load_csv_data():
         'smart_home_dataset.csv',
         './smart_home_dataset.csv'
     ]
-
+    
     csv_path = None
     for path in possible_paths:
         if os.path.exists(path):
             csv_path = path
             print(f"✅ Файл найден: {path}")
             break
-
+    
     if csv_path is None:
         print("❌ CSV-ФАЙЛ НЕ НАЙДЕН!")
         return False
-
+    
     try:
         df = pd.read_csv(csv_path)
         csv_data = df.to_dict('records')
@@ -94,22 +98,98 @@ def load_csv_data():
         print(f"❌ Ошибка чтения CSV: {e}")
         return False
 
-# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ДАННЫХ ==========
+def fetch_from_real_api():
+    global REAL_API_CONFIG
+    if not REAL_API_CONFIG['enabled']:
+        return None
+    
+    try:
+        import requests
+        headers = {}
+        if REAL_API_CONFIG['api_key']:
+            headers['Authorization'] = f"Bearer {REAL_API_CONFIG['api_key']}"
+        
+        response = requests.get(REAL_API_CONFIG['url'], headers=headers, timeout=3)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            print(f"⚠️ API вернул код {response.status_code}")
+            return None
+    except requests.exceptions.ConnectionError:
+        print(f"⚠️ Не удалось подключиться к {REAL_API_CONFIG['url']}")
+        return None
+    except Exception as e:
+        print(f"⚠️ Ошибка API: {e}")
+        return None
+
+def generate_mock_data():
+    current_time = datetime.now()
+    hour = current_time.hour
+    
+    if 18 <= hour <= 22:
+        energy = round(random.uniform(2.5, 4.5), 2)
+    elif 7 <= hour <= 9:
+        energy = round(random.uniform(1.5, 3.0), 2)
+    else:
+        energy = round(random.uniform(0.3, 1.2), 2)
+    
+    voltage = round(random.uniform(218, 242), 1)
+    
+    devices_status = {
+        'television': 1 if random.random() > 0.7 else 0,
+        'dryer': 1 if 10 <= hour <= 12 and random.random() > 0.85 else 0,
+        'oven': 1 if (12 <= hour <= 14 or 18 <= hour <= 20) and random.random() > 0.8 else 0,
+        'refrigerator': 1,
+        'microwave': 1 if random.random() > 0.9 else 0
+    }
+    
+    overall_score = random.randint(70, 95)
+    if overall_score >= 80:
+        status_text, status_color, status_icon = "Отличное", "#4caf50", "✅"
+    elif overall_score >= 60:
+        status_text, status_color, status_icon = "Хорошее", "#ff9800", "⚠️"
+    else:
+        status_text, status_color, status_icon = "Требует внимания", "#ffc107", "⚡"
+    
+    amortization = {
+        'overall': overall_score,
+        'devices': {
+            'Refrigerator': {'score': random.randint(65, 95), 'usage': random.randint(40, 80)},
+            'Oven': {'score': random.randint(60, 90), 'usage': random.randint(10, 60)},
+            'Dryer': {'score': random.randint(70, 95), 'usage': random.randint(10, 50)},
+            'Television': {'score': random.randint(75, 98), 'usage': random.randint(15, 60)},
+            'Microwave': {'score': random.randint(80, 98), 'usage': random.randint(5, 40)}
+        },
+        'status': {'text': status_text, 'color': status_color, 'icon': status_icon}
+    }
+    
+    return {
+        'datetime': current_time.strftime('%Y-%m-%d %H:%M:%S'),
+        'datetime_short': current_time.strftime('%H:%M:%S'),
+        'energy': energy,
+        'voltage': voltage,
+        'devices': devices_status,
+        'amortization': amortization,
+        'progress': 0,
+        'current': 0,
+        'total': 0
+    }
 
 def calculate_amortization_from_csv(recent_records):
     if len(recent_records) < 10:
         return None
-
+    
     df = pd.DataFrame(recent_records)
+    
     devices = ['Refrigerator', 'Oven', 'Microwave', 'Television', 'Dryer']
     devices_data = {}
     all_scores = []
-
+    
     for device in devices:
         if device in df.columns:
             usage_count = (df[device] > 0).sum()
             usage_pct = round((usage_count / len(df)) * 100, 1)
-
+            
             if device == 'Refrigerator':
                 score = max(50, min(95, 95 - (usage_pct * 0.3)))
             elif device == 'Dryer':
@@ -118,29 +198,45 @@ def calculate_amortization_from_csv(recent_records):
                 score = max(50, min(92, 92 - (usage_pct * 0.35)))
             else:
                 score = max(60, min(98, 98 - (usage_pct * 0.25)))
-
+            
             score = round(score, 1)
             all_scores.append(score)
-            devices_data[device] = {'score': score, 'usage': usage_pct}
-
+            
+            devices_data[device] = {
+                'score': score,
+                'usage': usage_pct
+            }
+    
     if not all_scores:
         return None
-
+    
     overall = round(sum(all_scores) / len(all_scores), 1)
-
+    
     if overall >= 80:
-        status_text, status_color, status_icon = "Отличное", "#4caf50", "✅"
+        status_text = "Отличное"
+        status_color = "#4caf50"
+        status_icon = "✅"
     elif overall >= 60:
-        status_text, status_color, status_icon = "Хорошее", "#ff9800", "⚠️"
+        status_text = "Хорошее"
+        status_color = "#ff9800"
+        status_icon = "⚠️"
     elif overall >= 40:
-        status_text, status_color, status_icon = "Требует внимания", "#ffc107", "⚡"
+        status_text = "Требует внимания"
+        status_color = "#ffc107"
+        status_icon = "⚡"
     else:
-        status_text, status_color, status_icon = "Критическое", "#f44336", "🔴"
-
+        status_text = "Критическое"
+        status_color = "#f44336"
+        status_icon = "🔴"
+    
     return {
         'overall': overall,
         'devices': devices_data,
-        'status': {'text': status_text, 'color': status_color, 'icon': status_icon}
+        'status': {
+            'text': status_text,
+            'color': status_color,
+            'icon': status_icon
+        }
     }
 
 def get_user_progress(user_id):
@@ -162,20 +258,31 @@ def update_user_progress(user_id, current_index):
     conn.commit()
     conn.close()
 
-# ========== МАРШРУТЫ АВТОРИЗАЦИИ ==========
+@app.route('/api/config', methods=['GET', 'POST'])
+@login_required
+def api_config():
+    global REAL_API_CONFIG
+    if request.method == 'POST':
+        data = request.json
+        REAL_API_CONFIG['enabled'] = data.get('enabled', False)
+        REAL_API_CONFIG['url'] = data.get('url', REAL_API_CONFIG['url'])
+        REAL_API_CONFIG['api_key'] = data.get('api_key', REAL_API_CONFIG['api_key'])
+        print(f"🔧 Настройки API обновлены: enabled={REAL_API_CONFIG['enabled']}, url={REAL_API_CONFIG['url']}")
+        return jsonify({'success': True, 'config': REAL_API_CONFIG})
+    return jsonify(REAL_API_CONFIG)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-
+        
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
         cursor.execute('SELECT id, password FROM users WHERE username = ?', (username,))
         user = cursor.fetchone()
         conn.close()
-
+        
         if user and bcrypt.checkpw(password.encode('utf-8'), user[1]):
             session['user_id'] = user[0]
             session['username'] = username
@@ -189,12 +296,12 @@ def register():
         username = request.form.get('username')
         password = request.form.get('password')
         email = request.form.get('email')
-
+        
         if not username or not password:
             return render_template('register.html', error='Заполните все поля')
-
+        
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-
+        
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
         try:
@@ -214,8 +321,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# ========== ЗАЩИЩЁННЫЕ МАРШРУТЫ ПРИЛОЖЕНИЯ ==========
-
 @app.route('/')
 @login_required
 def index():
@@ -234,6 +339,15 @@ def calculator():
 @app.route('/api/status')
 @login_required
 def get_status():
+    if REAL_API_CONFIG['enabled']:
+        return jsonify({
+            'is_streaming': True,
+            'progress': 0,
+            'current': 0,
+            'total': 0,
+            'source': 'api'
+        })
+    
     total = len(csv_data)
     user_progress = get_user_progress(session['user_id'])
     progress = round((user_progress / total * 100), 1) if total > 0 else 0
@@ -241,12 +355,17 @@ def get_status():
         'is_streaming': True,
         'progress': progress,
         'current': user_progress,
-        'total': total
+        'total': total,
+        'source': 'csv'
     })
 
 @app.route('/api/data')
 @login_required
 def get_initial_data():
+    if REAL_API_CONFIG['enabled']:
+        mock_data = [generate_mock_data() for _ in range(50)]
+        return jsonify(mock_data)
+    
     if not csv_data:
         return jsonify([])
     return jsonify(csv_data[:500])
@@ -254,9 +373,19 @@ def get_initial_data():
 @app.route('/api/statistics')
 @login_required
 def get_statistics():
+    if REAL_API_CONFIG['enabled']:
+        mock_stats = {
+            'avg_energy': round(random.uniform(0.8, 1.5), 2),
+            'max_energy': round(random.uniform(3.5, 5.0), 2),
+            'min_energy': round(random.uniform(0.1, 0.3), 2),
+            'avg_voltage': round(random.uniform(225, 235), 1),
+            'total_records': 0
+        }
+        return jsonify(mock_stats)
+    
     if not csv_data:
         return jsonify({'avg_energy': 0, 'max_energy': 0, 'min_energy': 0, 'avg_voltage': 230, 'total_records': 0})
-
+    
     energies = []
     for d in csv_data:
         e = d.get('Energy Consumption (kWh)', 0)
@@ -266,7 +395,7 @@ def get_statistics():
             except:
                 e = 0
         energies.append(e)
-
+    
     voltages = []
     for d in csv_data:
         v = d.get('Voltage', 0)
@@ -277,7 +406,7 @@ def get_statistics():
                 v = 0
         if v > 0:
             voltages.append(v)
-
+    
     return jsonify({
         'avg_energy': round(sum(energies) / len(energies), 2),
         'max_energy': round(max(energies), 2),
@@ -289,9 +418,31 @@ def get_statistics():
 @app.route('/api/devices')
 @login_required
 def api_devices():
+    if REAL_API_CONFIG['enabled']:
+        overall_score = random.randint(70, 95)
+        if overall_score >= 80:
+            status_text, status_color, status_icon = "Отличное", "#4caf50", "✅"
+        elif overall_score >= 60:
+            status_text, status_color, status_icon = "Хорошее", "#ff9800", "⚠️"
+        else:
+            status_text, status_color, status_icon = "Требует внимания", "#ffc107", "⚡"
+        
+        return jsonify({
+            'devices': {
+                'Refrigerator': {'score': random.randint(65, 95), 'usage': random.randint(40, 80)},
+                'Oven': {'score': random.randint(60, 90), 'usage': random.randint(10, 60)},
+                'Dryer': {'score': random.randint(70, 95), 'usage': random.randint(10, 50)},
+                'Television': {'score': random.randint(75, 98), 'usage': random.randint(15, 60)},
+                'Microwave': {'score': random.randint(80, 98), 'usage': random.randint(5, 40)}
+            },
+            'overall': overall_score,
+            'status': {'text': status_text, 'color': status_color, 'icon': status_icon},
+            'timestamp': datetime.now().isoformat()
+        })
+    
     if not csv_data or len(csv_data) < 10:
         return jsonify({'devices': {}, 'overall': 0, 'status': {'text': 'Недостаточно данных', 'color': '#999', 'icon': '⏳'}})
-
+    
     recent = csv_data[-100:]
     amortization = calculate_amortization_from_csv(recent)
     if amortization:
@@ -304,7 +455,26 @@ def api_devices():
     else:
         return jsonify({'devices': {}, 'overall': 0, 'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'}})
 
-# ========== WEBSOCKET СОБЫТИЯ ==========
+@app.route('/api/system')
+@login_required
+def get_system_info():
+    try:
+        import psutil
+        return jsonify({
+            'cpu': psutil.cpu_percent(interval=0.5),
+            'memory': psutil.virtual_memory().percent,
+            'records': len(csv_data),
+            'api_enabled': REAL_API_CONFIG['enabled'],
+            'api_url': REAL_API_CONFIG['url'] if REAL_API_CONFIG['enabled'] else None
+        })
+    except ImportError:
+        return jsonify({
+            'cpu': 0,
+            'memory': 0,
+            'records': len(csv_data),
+            'api_enabled': REAL_API_CONFIG['enabled'],
+            'api_url': REAL_API_CONFIG['url'] if REAL_API_CONFIG['enabled'] else None
+        })
 
 @socketio.on('connect')
 def handle_connect():
@@ -315,20 +485,31 @@ def handle_request_single():
     if 'user_id' not in session:
         emit('error', {'message': 'Unauthorized'})
         return
-
+    
+    if REAL_API_CONFIG['enabled']:
+        real_data = fetch_from_real_api()
+        if real_data:
+            socketio.emit('new_data', real_data)
+            return
+        else:
+            print("⚠️ API не отвечает, используем имитацию")
+            mock_data = generate_mock_data()
+            socketio.emit('new_data', mock_data)
+            return
+    
     user_id = session['user_id']
     current_index = get_user_progress(user_id)
-
+    
     if not csv_data:
         emit('error', {'message': 'Нет данных'})
         return
-
+    
     if current_index >= len(csv_data):
         emit('stream_finished', {'message': 'Все данные загружены'})
         return
-
+    
     record = csv_data[current_index]
-
+    
     devices_status = {
         'television': 1 if record.get('Television', 0) > 0 else 0,
         'dryer': 1 if record.get('Dryer', 0) > 0 else 0,
@@ -336,14 +517,14 @@ def handle_request_single():
         'refrigerator': 1 if record.get('Refrigerator', 0) > 0 else 0,
         'microwave': 1 if record.get('Microwave', 0) > 0 else 0
     }
-
+    
     start_idx = max(0, current_index - 100)
     recent = csv_data[start_idx:current_index + 1]
     amortization = calculate_amortization_from_csv(recent)
-
+    
     if amortization is None:
         amortization = {'overall': 50, 'devices': {}, 'status': {'text': 'Накопление данных...', 'color': '#999', 'icon': '⏳'}}
-
+    
     data_to_emit = {
         'datetime': record.get('Datetime', ''),
         'datetime_short': record.get('Datetime', '')[-8:] if record.get('Datetime') else '',
@@ -355,7 +536,7 @@ def handle_request_single():
         'current': current_index + 1,
         'total': len(csv_data)
     }
-
+    
     socketio.emit('new_data', data_to_emit)
     update_user_progress(user_id, current_index + 1)
 
@@ -365,13 +546,11 @@ def reset_stream():
         update_user_progress(session['user_id'], 0)
         emit('stream_reset', {'message': 'Stream reset'})
 
-# ========== ЗАПУСК ==========
-
 if __name__ == '__main__':
     print("="*50)
     print("🚀 ЗАПУСК СЕРВЕРА")
     print("="*50)
-
+    
     if load_csv_data():
         print(f"\n🌐 СЕРВЕР ЗАПУЩЕН")
         print("   http://localhost:5000")
@@ -380,8 +559,10 @@ if __name__ == '__main__':
         print("   Логин: admin")
         print("   Пароль: admin123")
         print("="*50)
+        print("📡 ИСТОЧНИК ДАННЫХ: CSV (можно настроить API в интерфейсе)")
+        print("="*50)
     else:
         print("\n❌ НЕ УДАЛОСЬ ЗАГРУЗИТЬ CSV")
         exit(1)
-
+    
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)

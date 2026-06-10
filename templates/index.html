@@ -29,11 +29,7 @@
             gap: 15px;
             border: 1px solid rgba(255,255,255,0.2);
         }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .logo { display: flex; align-items: center; gap: 12px; }
         .logo-icon {
             width: 40px;
             height: 40px;
@@ -44,22 +40,9 @@
             justify-content: center;
             font-size: 22px;
         }
-        .logo-text {
-            font-weight: 700;
-            font-size: 18px;
-            color: white;
-        }
-        .logo-text span {
-            font-weight: 400;
-            font-size: 12px;
-            opacity: 0.7;
-            display: block;
-        }
-        .nav-links {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
+        .logo-text { font-weight: 700; font-size: 18px; color: white; }
+        .logo-text span { font-weight: 400; font-size: 12px; opacity: 0.7; display: block; }
+        .nav-links { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .nav-link {
             padding: 10px 24px;
             border-radius: 40px;
@@ -70,14 +53,10 @@
             color: rgba(255,255,255,0.7);
             background: rgba(255,255,255,0.05);
         }
-        .nav-link:hover {
-            background: rgba(255,255,255,0.15);
-            color: white;
-        }
-        .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
+        .nav-link:hover { background: rgba(255,255,255,0.15); color: white; }
+        .nav-link.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .logout-btn { background: rgba(220, 53, 69, 0.2) !important; color: #ff6b6b !important; }
+        .logout-btn:hover { background: rgba(220, 53, 69, 0.4) !important; color: #ff8888 !important; }
         .status-badge {
             display: flex;
             align-items: center;
@@ -108,8 +87,6 @@
             padding: 30px 35px;
             margin-bottom: 30px;
             color: white;
-            position: relative;
-            overflow: hidden;
         }
         .header-card h1 { font-size: 28px; margin-bottom: 8px; font-weight: 600; }
         .header-card p { opacity: 0.85; font-size: 14px; }
@@ -124,12 +101,54 @@
             border-radius: 24px;
             padding: 20px;
             text-align: center;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255,255,255,0.2);
         }
-        .stat-card:hover { transform: translateY(-5px); }
         .stat-value { font-size: 32px; font-weight: 700; color: #667eea; }
         .stat-label { color: #666; font-size: 13px; margin-top: 8px; font-weight: 500; }
+        .control-panel {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .control-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            font-size: 14px;
+        }
+        .control-btn:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+        .alert-toast {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            border-left: 4px solid;
+        }
+        .alert-toast.warning { border-left-color: #ff9800; }
+        .alert-toast.critical { border-left-color: #f44336; }
+        .alert-toast.info { border-left-color: #2196f3; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .close-alert {
+            float: right;
+            cursor: pointer;
+            color: #999;
+            font-size: 18px;
+            margin-left: 15px;
+        }
+        .close-alert:hover { color: #333; }
         .main-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -140,7 +159,6 @@
             background: rgba(255,255,255,0.95);
             border-radius: 24px;
             padding: 24px;
-            border: 1px solid rgba(255,255,255,0.2);
         }
         .card-title {
             font-size: 18px;
@@ -148,9 +166,6 @@
             margin-bottom: 20px;
             padding-bottom: 12px;
             border-bottom: 2px solid #667eea;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
         .amortization-meter {
             text-align: center;
@@ -180,12 +195,7 @@
         .score-good { background: #d1ecf1; color: #0c5460; }
         .score-warning { background: #fff3cd; color: #856404; }
         .score-critical { background: #f8d7da; color: #721c24; }
-        .device-status {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 15px;
-        }
+        .device-status { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; }
         .device-chip {
             display: flex;
             justify-content: space-between;
@@ -193,16 +203,9 @@
             padding: 12px;
             border-radius: 12px;
             background: #f8f9fa;
-            transition: all 0.3s ease;
         }
-        .device-chip.active {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-        }
-        .device-chip.inactive {
-            background: #f8f9fa;
-            color: #666;
-        }
+        .device-chip.active { background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); color: white; }
+        .device-chip.inactive { background: #f8f9fa; color: #666; }
         .progress-bar {
             width: 100%;
             height: 6px;
@@ -237,28 +240,26 @@
 <body>
     <div class="container">
         <nav class="navbar">
-        <div class="logo">
-            <div class="logo-icon">🏠</div>
-            <div class="logo-text">
-                SmartHome<span>Energy Control</span>
+            <div class="logo">
+                <div class="logo-icon">🏠</div>
+                <div class="logo-text">SmartHome<span>Energy Control</span></div>
             </div>
-        </div>
-        <div class="nav-links">
-            <a href="/" class="nav-link active">Главная</a>
-            <a href="/analytics" class="nav-link">Аналитика</a>
-            <a href="/calculator" class="nav-link">Калькулятор</a>
-            <a href="/logout" class="nav-link logout-btn">Выйти</a>
-        </div>
-        <div class="status-badge">
-            <span class="live-dot"></span>
-            <span class="status-text" id="status-text">Активен</span>
-            <span class="progress-badge" id="progress-info">--</span>
-        </div>
-</nav>
-    </nav>
+            <div class="nav-links">
+                <a href="/" class="nav-link active">Главная</a>
+                <a href="/analytics" class="nav-link">Аналитика</a>
+                <a href="/calculator" class="nav-link">Калькулятор</a>
+                <a href="/logout" class="nav-link logout-btn">🚪 Выйти</a>
+            </div>
+            <div class="status-badge">
+                <span class="live-dot"></span>
+                <span class="status-text" id="status-text">Активен</span>
+                <span class="progress-badge" id="progress-info">--</span>
+            </div>
+        </nav>
+
         <div class="header-card">
             <h1>Система контроля энергопотребления</h1>
-            <p>Мониторинг в реальном времени | Предиктивная амортизация</p>
+            <p>Мониторинг в реальном времени | Предиктивная амортизация | Готовность к подключению реального сервера</p>
         </div>
 
         <div class="stats-grid" id="stats-container">
@@ -269,46 +270,61 @@
             <div class="stat-card"><div class="stat-value">--</div><div class="stat-label">Всего показаний</div></div>
         </div>
 
+        <div class="control-panel">
+            <button id="exportBtn" class="control-btn" style="background: #4caf50;">📄 Экспорт отчёта (CSV)</button>
+            <button id="clearAlertsBtn" class="control-btn" style="background: #ff9800;">🔔 Очистить уведомления</button>
+            <button id="settingsBtn" class="control-btn" style="background: #607d8b;">⚙️ Настройки сервера</button>
+        </div>
+
+        <div id="alertContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1000; max-width: 350px;"></div>
+
+        <div id="settingsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center;">
+            <div style="background:white; border-radius:24px; padding:30px; max-width:500px; width:90%;">
+                <h3 style="margin-bottom:20px;">⚙️ Подключение к реальному серверу</h3>
+                <div style="margin-bottom:15px;">
+                    <label style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+                        <input type="checkbox" id="apiEnabled"> Включить подключение к реальному серверу
+                    </label>
+                    <label style="display:block; margin-bottom:8px;">🔗 URL сервера:</label>
+                    <input type="text" id="apiUrl" style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd; margin-bottom:15px;" placeholder="http://localhost:5001/api/current">
+                    <label style="display:block; margin-bottom:8px;">🔑 API Key (опционально):</label>
+                    <input type="password" id="apiKey" style="width:100%; padding:10px; border-radius:12px; border:1px solid #ddd; margin-bottom:20px;" placeholder="your-api-key">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end;">
+                    <button id="saveSettingsBtn" style="padding:10px 20px; background:#667eea; color:white; border:none; border-radius:12px; cursor:pointer;">💾 Сохранить</button>
+                    <button id="closeSettingsBtn" style="padding:10px 20px; background:#ccc; border:none; border-radius:12px; cursor:pointer;">Отмена</button>
+                </div>
+                <div id="apiStatus" style="margin-top:15px; font-size:12px; color:#666;"></div>
+            </div>
+        </div>
+
         <div class="main-grid">
             <div class="card">
-                <div class="card-title">
-                    <span>📊</span> Динамика энергопотребления
-                </div>
+                <div class="card-title">📊 Динамика энергопотребления</div>
                 <div id="energy-chart" style="height: 350px;"></div>
-                <div class="progress-bar">
-                    <div id="progress-fill" class="progress-fill"></div>
-                </div>
+                <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
             </div>
 
             <div class="card">
-                <div class="card-title">
-                    <span>🔧</span> Предиктивная амортизация
+                <div class="card-title">🔧 Предиктивная амортизация</div>
+                <div class="amortization-meter">
+                    <div style="font-size: 13px; color: #888;">Общая амортизация системы</div>
+                    <div id="overall-score" class="overall-score">--%</div>
+                    <div id="overall-status" style="font-size: 13px;"></div>
                 </div>
-                <div id="amortization-container">
-                    <div class="amortization-meter">
-                        <div style="font-size: 13px; color: #888;">Общая амортизация системы</div>
-                        <div id="overall-score" class="overall-score">--%</div>
-                        <div id="overall-status" style="font-size: 13px;"></div>
-                    </div>
-                    <div id="device-list" class="device-list">
-                        <div style="text-align: center; padding: 20px;">Загрузка данных...</div>
-                    </div>
-                </div>
+                <div id="device-list" class="device-list"><div style="text-align: center; padding: 20px;">Загрузка данных...</div></div>
             </div>
         </div>
 
         <div class="card">
-            <div class="card-title">
-                <span>📱</span> Текущее состояние приборов
-            </div>
-            <div id="device-status" class="device-status">
-                <div class="device-chip inactive">Ожидание данных...</div>
-            </div>
+            <div class="card-title">📱 Текущее состояние приборов</div>
+            <div id="device-status" class="device-status"><div class="device-chip inactive">Ожидание данных...</div></div>
             <div id="last-record" class="last-record">Ожидание данных с датчиков...</div>
         </div>
 
         <div class="footer">
-            <p>Система мониторинга энергопотребления | Данные обновляются в реальном времени</p>
+            Система мониторинга энергопотребления | Данные обновляются в реальном времени
+            <div id="system-status" style="margin-top: 10px; font-size: 11px; color: rgba(255,255,255,0.4);"></div>
         </div>
     </div>
 
@@ -317,6 +333,8 @@
         let chart = null;
         let chartData = [];
         let streamInterval = null;
+        let alertHistory = [];
+        let lastEnergyCheck = 0;
 
         const deviceNames = {
             'refrigerator': '🧊 Холодильник',
@@ -347,7 +365,7 @@
                 fill: 'tozeroy',
                 fillcolor: 'rgba(102, 126, 234, 0.1)'
             };
-            
+
             const layout = {
                 title: 'Энергопотребление (кВт·ч)',
                 xaxis: { title: 'Время', tickangle: -45 },
@@ -363,6 +381,48 @@
             }
         }
 
+        function showAlert(message, type = 'info') {
+            const alertId = Date.now();
+            alertHistory.push({ id: alertId, message, type, time: new Date() });
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert-toast ${type}`;
+            alertDiv.id = `alert-${alertId}`;
+            alertDiv.innerHTML = `
+                <span class="close-alert" onclick="closeAlert(${alertId})">×</span>
+                <div style="font-weight: 600; margin-bottom: 5px;">
+                    ${type === 'critical' ? '🔴' : type === 'warning' ? '⚠️' : 'ℹ️'} 
+                    ${type === 'critical' ? 'КРИТИЧНО' : type === 'warning' ? 'ВНИМАНИЕ' : 'ИНФОРМАЦИЯ'}
+                </div>
+                <div style="font-size: 13px;">${message}</div>
+                <div style="font-size: 10px; color: #999; margin-top: 5px;">${new Date().toLocaleTimeString()}</div>
+            `;
+            
+            const container = document.getElementById('alertContainer');
+            if (container) {
+                container.appendChild(alertDiv);
+                setTimeout(() => closeAlert(alertId), 8000);
+            }
+        }
+
+        window.closeAlert = function(alertId) {
+            const alertElement = document.getElementById(`alert-${alertId}`);
+            if (alertElement) alertElement.remove();
+            alertHistory = alertHistory.filter(a => a.id !== alertId);
+        };
+
+        function checkEnergyAlert(energy) {
+            const now = Date.now();
+            if (now - lastEnergyCheck < 30000) return;
+            lastEnergyCheck = now;
+            
+            if (energy > 3.5) {
+                showAlert(`⚠️ Критическое энергопотребление: ${energy} кВт·ч! Проверьте работу приборов.`, 'critical');
+            } else if (energy > 2.5) {
+                showAlert(`⚡ Высокое энергопотребление: ${energy} кВт·ч. Рекомендуется оптимизация.`, 'warning');
+            }
+        }
+
         function updateUI(data) {
             if (!data) return;
 
@@ -370,12 +430,10 @@
                 let html = '';
                 for (const [key, name] of Object.entries(deviceNames)) {
                     const isActive = data.devices[key] === 1;
-                    html += `
-                        <div class="device-chip ${isActive ? 'active' : 'inactive'}">
-                            <span>${name}</span>
-                            <span>${isActive ? '● ВКЛ' : '○ ВЫКЛ'}</span>
-                        </div>
-                    `;
+                    html += `<div class="device-chip ${isActive ? 'active' : 'inactive'}">
+                                <span>${name}</span>
+                                <span>${isActive ? '● ВКЛ' : '○ ВЫКЛ'}</span>
+                            </div>`;
                 }
                 const container = document.getElementById('device-status');
                 if (container) container.innerHTML = html;
@@ -383,26 +441,15 @@
 
             if (data.amortization) {
                 const overallEl = document.getElementById('overall-score');
-                if (overallEl && data.amortization.overall !== undefined) {
-                    overallEl.innerHTML = data.amortization.overall + '%';
-                }
-                
+                if (overallEl && data.amortization.overall !== undefined) overallEl.innerHTML = data.amortization.overall + '%';
                 const statusEl = document.getElementById('overall-status');
-                if (statusEl && data.amortization.status) {
-                    statusEl.innerHTML = data.amortization.status.text;
-                }
-                
+                if (statusEl && data.amortization.status) statusEl.innerHTML = data.amortization.status.text;
                 const deviceList = document.getElementById('device-list');
                 if (deviceList && data.amortization.devices) {
                     let listHtml = '';
                     for (const [name, info] of Object.entries(data.amortization.devices)) {
                         const scoreClass = getScoreClass(info.score);
-                        listHtml += `
-                            <div class="device-item">
-                                <span class="device-name">${name}</span>
-                                <span class="device-score ${scoreClass}">${info.score}% (исп. ${info.usage}%)</span>
-                            </div>
-                        `;
+                        listHtml += `<div class="device-item"><span class="device-name">${name}</span><span class="device-score ${scoreClass}">${info.score}% (исп. ${info.usage}%)</span></div>`;
                     }
                     deviceList.innerHTML = listHtml;
                 }
@@ -410,19 +457,15 @@
 
             if (data.energy !== undefined) {
                 const lastRecordDiv = document.getElementById('last-record');
-                if (lastRecordDiv) {
-                    lastRecordDiv.innerHTML = `🕐 ${data.datetime || ''} | ⚡ ${data.energy} кВт·ч | 🔌 ${data.voltage || 0} В`;
-                }
+                if (lastRecordDiv) lastRecordDiv.innerHTML = `🕐 ${data.datetime || ''} | ⚡ ${data.energy} кВт·ч | 🔌 ${data.voltage || 0} В`;
+                checkEnergyAlert(data.energy);
             }
 
             if (data.progress !== undefined) {
                 const progressFill = document.getElementById('progress-fill');
                 if (progressFill) progressFill.style.width = data.progress + '%';
-                
                 const progressInfo = document.getElementById('progress-info');
-                if (progressInfo && data.current !== undefined && data.total !== undefined) {
-                    progressInfo.innerHTML = `${data.current}/${data.total}`;
-                }
+                if (progressInfo && data.current !== undefined && data.total !== undefined) progressInfo.innerHTML = `${data.current}/${data.total}`;
             }
 
             if (data.energy || data.datetime_short) {
@@ -435,9 +478,7 @@
         function startStreaming() {
             if (streamInterval) clearInterval(streamInterval);
             streamInterval = setInterval(() => {
-                if (socket && socket.connected) {
-                    socket.emit('request_single');
-                }
+                if (socket && socket.connected) socket.emit('request_single');
             }, 2000);
         }
 
@@ -490,19 +531,119 @@
                         <div class="stat-card"><div class="stat-value">${stats.total_records || 0}</div><div class="stat-label">Всего показаний</div></div>
                     `;
                 }
-                
                 const devicesRes = await fetch('/api/devices');
                 const devicesData = await devicesRes.json();
-                if (devicesData) {
-                    updateUI({ amortization: devicesData });
-                }
+                if (devicesData) updateUI({ amortization: devicesData });
             } catch(e) {
                 console.error('Ошибка:', e);
             }
         }
 
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/api/system');
+                const data = await response.json();
+                const systemStatus = document.getElementById('system-status');
+                if (systemStatus && data) {
+                    let sourceText = data.api_enabled ? '🌐 Режим API' : '📁 Режим CSV';
+                    systemStatus.innerHTML = `🖥️ Система: CPU ${data.cpu || 0}% | RAM ${data.memory || 0}% | Данных: ${chartData.length} записей | ${sourceText}`;
+                }
+            } catch(e) {
+                console.log('Мониторинг не активен');
+            }
+        }
+
+        async function loadApiConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                document.getElementById('apiEnabled').checked = config.enabled;
+                document.getElementById('apiUrl').value = config.url || 'http://localhost:5001/api/current';
+                document.getElementById('apiKey').value = config.api_key || '';
+            } catch(e) { console.error('Ошибка загрузки конфига:', e); }
+        }
+
+        async function saveApiConfig() {
+            const newConfig = {
+                enabled: document.getElementById('apiEnabled').checked,
+                url: document.getElementById('apiUrl').value,
+                api_key: document.getElementById('apiKey').value
+            };
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newConfig)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    showAlert(result.config.enabled ? '🌐 Включён режим реального сервера' : '📁 Включён режим CSV', 'info');
+                    document.getElementById('settingsModal').style.display = 'none';
+                    chartData = [];
+                    if (chart) {
+                        Plotly.purge('energy-chart');
+                        chart = null;
+                    }
+                    loadInitialData();
+                }
+            } catch(e) { console.error('Ошибка сохранения:', e); }
+        }
+
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            if (chartData.length === 0) {
+                showAlert('Нет данных для экспорта', 'warning');
+                return;
+            }
+            
+            let csvContent = "Datetime,Energy (kWh),Voltage (V),Television,Dryer,Oven,Refrigerator,Microwave\n";
+            chartData.forEach(record => {
+                const row = [
+                    record.datetime || '',
+                    record.energy || 0,
+                    record.voltage || 0,
+                    record.devices?.television || 0,
+                    record.devices?.dryer || 0,
+                    record.devices?.oven || 0,
+                    record.devices?.refrigerator || 0,
+                    record.devices?.microwave || 0
+                ].join(',');
+                csvContent += row + "\n";
+            });
+            
+            const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.setAttribute("download", `energy_report_${new Date().toISOString().slice(0,19)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showAlert('✅ Отчёт успешно экспортирован', 'info');
+        });
+
+        document.getElementById('clearAlertsBtn').addEventListener('click', function() {
+            const container = document.getElementById('alertContainer');
+            if (container) container.innerHTML = '';
+            alertHistory = [];
+            showAlert('Все уведомления очищены', 'info');
+        });
+
+      
+
+        document.getElementById('settingsBtn').addEventListener('click', () => {
+            loadApiConfig();
+            document.getElementById('settingsModal').style.display = 'flex';
+        });
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => {
+            document.getElementById('settingsModal').style.display = 'none';
+        });
+        document.getElementById('saveSettingsBtn').addEventListener('click', saveApiConfig);
+
         loadInitialData();
         setInterval(loadInitialData, 30000);
+        setInterval(loadSystemInfo, 30000);
+        loadSystemInfo();
     </script>
 </body>
 </html>
